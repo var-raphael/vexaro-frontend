@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,6 +8,7 @@ import {
   ChevronLeft, ChevronRight,
   AlertCircle, CheckCircle2, GitFork,
   Trash2, ChevronsLeft, ChevronsRight, Loader2,
+  Upload, FileJson, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Editor from "react-simple-code-editor";
@@ -61,24 +62,195 @@ function DeleteAltModal({
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 pt-1">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onCancel}
-            disabled={deleting}
-            className="text-xs h-8 border-border"
-          >
+          <Button variant="outline" size="sm" onClick={onCancel} disabled={deleting} className="text-xs h-8 border-border">
+            Cancel
+          </Button>
+          <Button size="sm" onClick={onConfirm} disabled={deleting} className="text-xs h-8 bg-red-500 hover:bg-red-600 text-white gap-1.5">
+            {deleting
+              ? <><Loader2 size={12} className="animate-spin" /> Deleting...</>
+              : <><Trash2 size={12} /> Delete alternate</>}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UploadModal({
+  onConfirm,
+  onCancel,
+}: {
+  onConfirm: (entities: Entity[]) => void;
+  onCancel: () => void;
+}) {
+  const [dragOver, setDragOver] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [parsed, setParsed] = useState<Entity[] | null>(null);
+  const [parsing, setParsing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function processFile(f: File) {
+    setFile(f);
+    setParseError(null);
+    setParsed(null);
+    setParsing(true);
+
+    if (!f.name.endsWith(".json")) {
+      setParseError("Only .json files are accepted.");
+      setParsing(false);
+      return;
+    }
+
+    try {
+      const text = await f.text();
+      const data = JSON.parse(text);
+
+      // Must be the full result file with an entities key
+      const entities = Array.isArray(data?.entities) ? data.entities : null;
+      if (!entities) {
+        setParseError("Invalid format — upload the result file as downloaded from Vexaro.");
+        setParsing(false);
+        return;
+      }
+      if (entities.length === 0) {
+        setParseError("'entities' array is empty — must contain at least one entity.");
+        setParsing(false);
+        return;
+      }
+      if (!entities.every((item: unknown) => typeof item === "object" && item !== null && !Array.isArray(item))) {
+        setParseError("Every item in 'entities' must be a JSON object.");
+        setParsing(false);
+        return;
+      }
+
+      setParsed(entities as Entity[]);
+    } catch (e) {
+      setParseError(e instanceof Error ? e.message : "Invalid JSON.");
+    } finally {
+      setParsing(false);
+    }
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files[0];
+    if (f) processFile(f);
+  }
+
+  function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (f) processFile(f);
+  }
+
+  function clearFile() {
+    setFile(null);
+    setParsed(null);
+    setParseError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-card border border-border rounded-lg p-6 w-full max-w-md mx-4 space-y-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+              <Upload size={14} className="text-primary" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Upload alternate JSON</h3>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                Upload a Vexaro result file. The <span className="font-mono text-foreground">entities</span> array
+                will fully replace the current alternate.
+              </p>
+            </div>
+          </div>
+          <button onClick={onCancel} className="text-muted-foreground hover:text-foreground transition-colors">
+            <X size={15} />
+          </button>
+        </div>
+
+        {/* Drop zone */}
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          onClick={() => !file && fileInputRef.current?.click()}
+          className={cn(
+            "relative rounded-md border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-2 py-8 px-4",
+            dragOver
+              ? "border-primary/60 bg-primary/5"
+              : file
+              ? "border-border bg-accent/30 cursor-default"
+              : "border-border hover:border-primary/40 cursor-pointer"
+          )}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            className="hidden"
+            onChange={handleFileInput}
+          />
+
+          {parsing ? (
+            <Loader2 size={20} className="animate-spin text-muted-foreground" />
+          ) : file ? (
+            <div className="flex items-center gap-2 w-full justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <FileJson size={16} className="text-primary shrink-0" />
+                <span className="text-xs text-foreground font-mono truncate">{file.name}</span>
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {(file.size / 1024).toFixed(1)} KB
+                </span>
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); clearFile(); }}
+                className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              >
+                <X size={13} />
+              </button>
+            </div>
+          ) : (
+            <>
+              <Upload size={20} className="text-muted-foreground/60" />
+              <p className="text-xs text-muted-foreground text-center">
+                Drop a <span className="text-foreground font-mono">.json</span> result file here or click to browse
+              </p>
+            </>
+          )}
+        </div>
+
+        {/* Parse result */}
+        {parsed && !parseError && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-emerald-500/10 border border-emerald-500/20">
+            <CheckCircle2 size={12} className="text-emerald-400 shrink-0" />
+            <p className="text-xs text-emerald-400">
+              {parsed.length.toLocaleString()} entities ready to upload
+            </p>
+          </div>
+        )}
+
+        {parseError && (
+          <div className="flex items-start gap-2 px-3 py-2 rounded-md bg-red-950/60 border border-red-500/30">
+            <AlertCircle size={12} className="text-red-400 shrink-0 mt-0.5" />
+            <p className="text-xs text-red-400 font-mono break-all">{parseError}</p>
+          </div>
+        )}
+
+        <div className="flex items-center justify-end gap-2 pt-1">
+          <Button variant="outline" size="sm" onClick={onCancel} className="text-xs h-8 border-border">
             Cancel
           </Button>
           <Button
             size="sm"
-            onClick={onConfirm}
-            disabled={deleting}
-            className="text-xs h-8 bg-red-500 hover:bg-red-600 text-white gap-1.5"
+            onClick={() => parsed && onConfirm(parsed)}
+            disabled={!parsed || !!parseError}
+            className="text-xs h-8 bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 disabled:opacity-50"
           >
-            {deleting
-              ? <><Loader2 size={12} className="animate-spin" /> Deleting...</>
-              : <><Trash2 size={12} /> Delete alternate</>}
+            <Upload size={12} /> Upload & Replace
           </Button>
         </div>
       </div>
@@ -98,7 +270,6 @@ function PaginationBar({
   if (totalPages <= 1) return null;
 
   const pages: (number | "ellipsis")[] = [];
-
   if (totalPages <= 5) {
     for (let i = 0; i < totalPages; i++) pages.push(i);
   } else {
@@ -113,33 +284,30 @@ function PaginationBar({
   }
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="space-y-1.5">
       <span className="text-xs text-muted-foreground">
         Page {page + 1} of {totalPages}
       </span>
-      <div className="flex items-center gap-1.5">
-        <button
-          onClick={() => onChange(0)}
-          disabled={page === 0}
-          className="w-7 h-7 flex items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          <ChevronsLeft size={12} />
-        </button>
-        <button
-          onClick={() => onChange(page - 1)}
-          disabled={page === 0}
-          className="w-7 h-7 flex items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          <ChevronLeft size={12} />
-        </button>
+      <div className="overflow-x-auto">
+        <div className="flex items-center gap-1 min-w-max">
+          <button
+            onClick={() => onChange(0)}
+            disabled={page === 0}
+            className="w-7 h-7 flex items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronsLeft size={12} />
+          </button>
+          <button
+            onClick={() => onChange(page - 1)}
+            disabled={page === 0}
+            className="w-7 h-7 flex items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronLeft size={12} />
+          </button>
 
-        <div className="flex items-center gap-1">
           {pages.map((p, i) =>
             p === "ellipsis" ? (
-              <span
-                key={`e-${i}`}
-                className="w-7 h-7 flex items-center justify-center text-xs text-muted-foreground/50"
-              >
+              <span key={`e-${i}`} className="w-7 h-7 flex items-center justify-center text-xs text-muted-foreground/50">
                 ···
               </span>
             ) : (
@@ -157,22 +325,22 @@ function PaginationBar({
               </button>
             )
           )}
-        </div>
 
-        <button
-          onClick={() => onChange(page + 1)}
-          disabled={page === totalPages - 1}
-          className="w-7 h-7 flex items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          <ChevronRight size={12} />
-        </button>
-        <button
-          onClick={() => onChange(totalPages - 1)}
-          disabled={page === totalPages - 1}
-          className="w-7 h-7 flex items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          <ChevronsRight size={12} />
-        </button>
+          <button
+            onClick={() => onChange(page + 1)}
+            disabled={page === totalPages - 1}
+            className="w-7 h-7 flex items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronRight size={12} />
+          </button>
+          <button
+            onClick={() => onChange(totalPages - 1)}
+            disabled={page === totalPages - 1}
+            className="w-7 h-7 flex items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronsRight size={12} />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -196,6 +364,7 @@ export default function WebAlternatePage() {
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -206,7 +375,7 @@ export default function WebAlternatePage() {
     async function load() {
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/dataset/alternate/result?dataset_id=${datasetId}&version_id=${version}`
+       `${process.env.NEXT_PUBLIC_API_URL}/dataset/alternate/result?dataset_id=${datasetId}&version_id=${version}&page=1&limit=99999`
         );
         if (!res.ok) {
           console.error("Failed to load dataset:", await res.text());
@@ -259,6 +428,17 @@ export default function WebAlternatePage() {
     } catch (e: unknown) {
       setParseError(e instanceof Error ? e.message : "Invalid JSON");
     }
+  }
+
+  function handleUploadConfirm(entities: Entity[]) {
+    setShowUploadModal(false);
+    localStorage.removeItem(storageKey);
+    setAllEntities(entities);
+    setPage(0);
+    setTextValue(JSON.stringify(entities.slice(0, PAGE_SIZE), null, 2));
+    setParseError(null);
+    setIsDirty(true);
+    setSaveError(null);
   }
 
   async function handleDeleteAlternate() {
@@ -347,6 +527,13 @@ export default function WebAlternatePage() {
         />
       )}
 
+      {showUploadModal && (
+        <UploadModal
+          onConfirm={handleUploadConfirm}
+          onCancel={() => setShowUploadModal(false)}
+        />
+      )}
+
       <div className="max-w-6xl mx-auto px-5 md:px-8 py-10 space-y-6">
         <div>
           <button
@@ -385,7 +572,16 @@ export default function WebAlternatePage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowUploadModal(true)}
+                className="text-xs h-8 gap-1.5 border-border hover:border-primary/40 hover:text-primary"
+              >
+                <Upload size={12} /> Upload JSON
+              </Button>
+
               <Button
                 variant="outline"
                 size="sm"
@@ -417,7 +613,6 @@ export default function WebAlternatePage() {
           </div>
         )}
 
-        <PaginationBar page={page} totalPages={totalPages} onChange={setPage} />
 
         <div
           className={cn(

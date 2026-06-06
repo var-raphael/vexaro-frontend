@@ -21,13 +21,14 @@ import {
   MessageSquare, ArrowRight, Sparkles, Crown, Shield, Copy,
   Key, Moon, Database, Radio,
 } from "lucide-react";
+import { FaAmazon } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Status = "active" | "frozen" | "processing";
-type DatasetType = "web" | "reddit";
+type DatasetType = "web" | "reddit" | "amazon";
 
 interface Dataset {
   dataset_id: number;
@@ -89,6 +90,11 @@ const DATASET_TYPE_CONFIG: Record<DatasetType, { label: string; class: string; i
     class: "text-orange-400 bg-orange-500/10 border-orange-500/20",
     icon: MessageSquare,
   },
+  amazon: {
+    label: "amazon-data",
+    class: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+    icon: FaAmazon,
+  },
 };
 
 // ── Tag colors ────────────────────────────────────────────────────────────────
@@ -135,6 +141,7 @@ function formatCount(n: number): string {
 
 function normalizeDatasetType(source: string): DatasetType {
   if (source === "reddit") return "reddit";
+  if (source === "amazon") return "amazon";
   return "web";
 }
 
@@ -150,8 +157,36 @@ function NewDatasetModal({
   onSelect,
 }: {
   onCancel: () => void;
-  onSelect: (type: DatasetType) => void;
+  onSelect: (type: string) => void;
 }) {
+  const router = useRouter();
+
+  const active = [
+  {
+    key: "web",
+    icon: <Globe size={16} className="text-violet-400" />,
+    iconBg: "bg-violet-500/10 border-violet-500/20",
+    label: "Normal Web Data",
+    desc: "Scrape and pipeline any public URL or web source",
+    hover: "hover:border-violet-500/40 hover:bg-violet-500/5",
+    arrowHover: "group-hover:text-violet-400",
+    href: "/dataset/web-new",
+  },
+  {
+    key: "amazon",
+    icon: <FaAmazon size={16} className="text-amber-400" />,
+    iconBg: "bg-amber-500/10 border-amber-500/20",
+    label: "Amazon Data",
+    desc: "Products, prices, reviews and listings from Amazon",
+    hover: "hover:border-amber-500/40 hover:bg-amber-500/5",
+    arrowHover: "group-hover:text-amber-400",
+    href: "/dataset/amazon-new",
+  },
+];
+
+const upcoming: never[] = [];
+
+  
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
       <Card className="bg-card border-border w-full max-w-md">
@@ -167,80 +202,24 @@ function NewDatasetModal({
           </div>
 
           <div className="grid grid-cols-1 gap-3">
-            <button
-              onClick={() => onSelect("web")}
-              className="group flex items-center gap-4 p-4 rounded-xl border border-border bg-accent/20 hover:border-violet-500/40 hover:bg-violet-500/5 transition-all duration-150 text-left"
-            >
-              <div className="w-10 h-10 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0 group-hover:border-violet-500/40 transition-colors">
-                <Globe size={16} className="text-violet-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">Normal Web Data</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Scrape and pipeline any public URL or web source</p>
-              </div>
-              <ArrowRight size={14} className="text-muted-foreground group-hover:text-violet-400 transition-colors shrink-0" />
-            </button>
-
-            <div className="flex items-center gap-3 pt-1">
-              <div className="flex-1 h-px bg-border" />
-              <p className="text-xs text-muted-foreground">Coming soon</p>
-              <div className="flex-1 h-px bg-border" />
-            </div>
-
-            {[
-              {
-                icon: (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-neutral-400">
-                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z" />
-                  </svg>
-                ),
-                iconBg: "bg-neutral-500/10 border-neutral-500/20",
-                label: "GitHub Data",
-                desc: "Repos, issues, PRs and commit signals from GitHub",
-                badge: "text-neutral-400 border-neutral-500/30 bg-neutral-500/10",
-              },
-              {
-                icon: (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-amber-500">
-                    <path d="M0 0v24h24V0H0zm13.448 11.71L16.5 5.5h-1.9l-2.152 4.618L10.3 5.5H8.4l3.05 6.21V18h2v-6.29z" />
-                  </svg>
-                ),
-                iconBg: "bg-amber-500/10 border-amber-500/20",
-                label: "Hacker News",
-                desc: "Top stories, comments and discussions from HN",
-                badge: "text-amber-400 border-amber-500/30 bg-amber-500/10",
-              },
-              {
-                icon: (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-rose-400">
-                    <path d="M13.604 8.4h-3.405V12h3.405a1.8 1.8 0 0 0 0-3.6M12 0C5.373 0 0 5.372 0 12c0 6.627 5.373 12 12 12 6.628 0 12-5.373 12-12C24 5.372 18.628 0 12 0m1.604 14.4H10.2V18H7.8V6h5.804a4.2 4.2 0 0 1 0 8.4" />
-                  </svg>
-                ),
-                iconBg: "bg-rose-500/10 border-rose-500/20",
-                label: "Product Hunt",
-                desc: "Launches, upvotes and maker conversations from PH",
-                badge: "text-rose-400 border-rose-500/30 bg-rose-500/10",
-              },
-              {
-                icon: <MessageSquare size={16} className="text-orange-400" />,
-                iconBg: "bg-orange-500/10 border-orange-500/20",
-                label: "Reddit Data",
-                desc: "Pull posts, comments and signals from subreddits",
-                badge: "text-orange-400 border-orange-500/30 bg-orange-500/10",
-              },
-            ].map(({ icon, iconBg, label, desc, badge }) => (
-              <div key={label} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-accent/10 opacity-60 cursor-not-allowed">
-                <div className={cn("w-10 h-10 rounded-lg border flex items-center justify-center shrink-0", iconBg)}>
+            {active.map(({ key, icon, iconBg, label, desc, hover, arrowHover, href }) => (
+              <button
+                key={key}
+                onClick={() => { onCancel(); router.push(href); }}
+                className={cn(
+                  "group flex items-center gap-4 p-4 rounded-xl border border-border bg-accent/20 transition-all duration-150 text-left",
+                  hover
+                )}
+              >
+                <div className={cn("w-10 h-10 rounded-lg border flex items-center justify-center shrink-0 transition-colors", iconBg)}>
                   {icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-foreground">{label}</p>
-                    <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded-full border", badge)}>Soon</span>
-                  </div>
+                  <p className="text-sm font-medium text-foreground">{label}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
                 </div>
-              </div>
+                <ArrowRight size={14} className={cn("text-muted-foreground transition-colors shrink-0", arrowHover)} />
+              </button>
             ))}
           </div>
         </CardContent>
@@ -479,6 +458,7 @@ function CopyButton({ value, icon: Icon, label, copiedLabel }: {
 function DatasetCard({
   dataset,
   onEdit, onDelete, onFreeze, onRefresh, onRollback,
+  onRegeneratePingKey, onRegeneratePrivateKey,
 }: {
   dataset: Dataset;
   onEdit: (d: Dataset) => void;
@@ -486,6 +466,8 @@ function DatasetCard({
   onFreeze: (d: Dataset) => void;
   onRefresh: (d: Dataset) => void;
   onRollback: (d: Dataset) => void;
+  onRegeneratePingKey: (d: Dataset) => void;
+  onRegeneratePrivateKey: (d: Dataset) => void;
 }) {
   const s = STATUS_CONFIG[normalizeStatus(dataset.status)] ?? STATUS_CONFIG["active"];
   const t = DATASET_TYPE_CONFIG[normalizeDatasetType(dataset.dataset_type)] ?? DATASET_TYPE_CONFIG["web"];
@@ -585,6 +567,22 @@ function DatasetCard({
                 >
                   <Snowflake size={13} /> {dataset.is_frozen ? "Unfreeze" : "Freeze"}
                 </DropdownMenuItem>
+                
+                <DropdownMenuSeparator className="bg-border" />
+<DropdownMenuItem
+  onClick={() => onRegeneratePingKey(dataset)}
+  className="text-xs text-muted-foreground hover:text-foreground cursor-pointer gap-2"
+>
+  <RefreshCw size={13} /> Regenerate Ping Key
+</DropdownMenuItem>
+{dataset.visibility === "private" && (
+  <DropdownMenuItem
+    onClick={() => onRegeneratePrivateKey(dataset)}
+    className="text-xs text-muted-foreground hover:text-foreground cursor-pointer gap-2"
+  >
+    <Key size={13} /> Regenerate API Key
+  </DropdownMenuItem>
+)}
                 <DropdownMenuSeparator className="bg-border" />
                 <DropdownMenuItem onClick={() => onDelete(dataset)} className="text-xs text-red-400 hover:text-red-300 focus:text-red-300 focus:bg-red-500/10 cursor-pointer gap-2">
                   <Trash2 size={13} /> Delete
@@ -692,17 +690,22 @@ function DatasetCard({
               copiedLabel="Copied!"
             />
 
-            {isPrivate && dataset.private_key && (
-              <>
+                  {isPrivate && (
+                <>
                 <span className="text-border">·</span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-slate-500/30 bg-slate-500/10 text-slate-400">
+               <Shield size={9} /> private
+              </span>
+           {dataset.private_key && (
                 <CopyButton
-                  value={dataset.private_key}
-                  icon={Key}
-                  label="Key"
-                  copiedLabel="Copied!"
-                />
-              </>
-            )}
+                value={dataset.private_key}
+                icon={Key}
+                label="API key"
+                copiedLabel="Copied!"
+              />
+          )}
+  </>
+                )}
           </div>
 
           <Link href={viewHref}>
@@ -863,6 +866,48 @@ export default function DatasetsPage() {
     }
   }
 
+
+async function handleRegeneratePingKey(dataset: Dataset) {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dataset/regenerate/ping-key`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dataset_id: dataset.dataset_id, user_id: user?.id }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      setDatasets((prev) =>
+        prev.map((d) =>
+          d.dataset_id === dataset.dataset_id ? { ...d, ping_key: data.ping_key } : d
+        )
+      );
+      navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_API_URL}/ping/${data.ping_key}`);
+    }
+  } catch (err) {
+    console.error("regenerate ping key error:", err);
+  }
+}
+
+async function handleRegeneratePrivateKey(dataset: Dataset) {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dataset/regenerate/private-key`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dataset_id: dataset.dataset_id, user_id: user?.id }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      setDatasets((prev) =>
+        prev.map((d) =>
+          d.dataset_id === dataset.dataset_id ? { ...d, private_key: data.private_key } : d
+        )
+      );
+      navigator.clipboard.writeText(data.private_key);
+    }
+  } catch (err) {
+    console.error("regenerate private key error:", err);
+  }
+}
   return (
     <div className="max-w-6xl mx-auto px-5 md:px-8 py-10">
       {modal.type === "new-dataset" && (
@@ -949,18 +994,21 @@ export default function DatasetsPage() {
       ) : filtered.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((d) => (
-            <DatasetCard
-              key={d.dataset_id}
-              dataset={d}
-              onEdit={(d) => d.dataset_type === "reddit"
-                ? router.push(`/dataset/reddit-edit/${d.dataset_id}`)
-                : router.push(`/dataset/web-edit/${d.dataset_id}`)
-              }
-              onDelete={(d) => setModal({ type: "delete", dataset: d })}
-              onFreeze={(d) => setModal({ type: "freeze", dataset: d })}
-              onRefresh={(d) => setModal({ type: "refresh", dataset: d })}
-              onRollback={(d) => setModal({ type: "rollback", dataset: d })}
-            />
+<DatasetCard
+  key={d.dataset_id}
+  dataset={d}
+  onEdit={(d) => {
+    if (d.dataset_type === "reddit") router.push(`/dataset/reddit-edit/${d.dataset_id}`);
+    else if (d.dataset_type === "amazon") router.push(`/dataset/amazon-edit/${d.dataset_id}`);
+    else router.push(`/dataset/web-edit/${d.dataset_id}`);
+  }}
+  onDelete={(d) => setModal({ type: "delete", dataset: d })}
+  onFreeze={(d) => setModal({ type: "freeze", dataset: d })}
+  onRefresh={(d) => setModal({ type: "refresh", dataset: d })}
+  onRollback={(d) => setModal({ type: "rollback", dataset: d })}
+  onRegeneratePingKey={handleRegeneratePingKey}
+  onRegeneratePrivateKey={handleRegeneratePrivateKey}
+/>
           ))}
         </div>
       ) : (

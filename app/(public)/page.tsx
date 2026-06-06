@@ -1,18 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
 import {
   Database, GitBranch, Diff, Undo2, Copy,
   RefreshCw, Key, Zap, ArrowRight, Check,
-  Globe, Layers, Shield, ChevronRight, ArrowUpRight,
+  Globe, Shield, ChevronRight, ArrowUpRight,
+  Webhook, FileJson,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { VexaroMark } from "@/components/ui/vexaro-mark";
 
-// ── Pricing Data ──────────────────────────────────────────────────────────────
+// ── Pricing ───────────────────────────────────────────────────────────────────
 
 const FREE_PLAN = {
   name: "Free",
@@ -20,35 +20,81 @@ const FREE_PLAN = {
   period: "/mo",
   desc: "For exploration and testing only.",
   features: [
-    "1 dataset only",
-    "No version history",
-    "No auto-refresh",
-    "No marketplace access",
+    "1 dataset",
+    "25 URLs per dataset",
+    "10 Serper-discovered URLs per dataset",
+    "Unlimited imported URLs (up to slot limit)",
+    "Manual refresh only",
+    "No ping URL or webhook",
+    "Full diff viewer & one-click rollback",
+    "Full marketplace access",
+    "Clone & extend public datasets",
+    "Download in any format",
     "Community support only",
   ],
   cta: "Get started free",
+  href: "/auth",
+};
+
+const STARTER_PLAN = {
+  name: "Starter",
+  price: "$29",
+  period: "/mo",
+  desc: "For builders who need live, versioned web data without managing infrastructure.",
+  features: [
+    "2 datasets",
+    "50 URLs per dataset",
+    "20 Serper-discovered URLs per dataset",
+    "Unlimited imported URLs (up to slot limit)",
+    "Nightly automatic refresh",
+    "On-demand refresh via ping URL",
+    "Webhook notifications on refresh",
+    "Full diff viewer & one-click rollback",
+    "Full marketplace access",
+    "Clone & extend public datasets",
+    "Download in any format",
+    "Email support",
+  ],
+  cta: "Start building",
+  href: "/auth",
 };
 
 const PRO_PLAN = {
-  name: "Starter",
-  price: "$39",
+  name: "Pro",
+  price: "$59",
   period: "/mo",
-  desc: "For developers building seriously with web and Reddit data.",
+  desc: "For growing teams who need more data and faster pipelines.",
   features: [
-    "6 custom datasets",
-    "Unlimited version history",
-    "Daily data refresh",
-    "On-demand refresh via ping URL",
-    "Full diff viewer & one-click rollback",
-    "Access to full marketplace",
-    "Clone & extend public datasets",
-    "AI pipeline-ready structured JSON",
+    "Everything in Starter",
+    "6 datasets",
+    "150 URLs per dataset",
+    "50 Serper-discovered URLs per dataset",
+    "Unlimited imported URLs (up to slot limit)",
+    "Priority crawling queue",
     "Priority support",
   ],
   cta: "Start building",
+  href: "/auth",
 };
 
-// ── Animation utilities ───────────────────────────────────────────────────────
+const SCALE_PLAN = {
+  name: "Scale",
+  price: "$99",
+  period: "/mo",
+  desc: "For teams and startups running serious data pipelines.",
+  features: [
+    "Everything in Pro",
+    "Unlimited datasets",
+    "500 URLs per dataset",
+    "100 Serper-discovered URLs per dataset",
+    "Unlimited imported URLs (up to slot limit)",
+    "Custom refresh schedules",
+    "Dedicated support",
+  ],
+  cta: "Start scaling",
+  href: "/auth",
+};
+// ── Animation ─────────────────────────────────────────────────────────────────
 
 function useInView(threshold = 0.12) {
   const ref = useRef<HTMLDivElement>(null);
@@ -139,29 +185,23 @@ function Hero() {
       className="relative flex flex-col items-start justify-end min-h-screen px-6 md:px-16 pb-16 pt-32 overflow-hidden"
       style={{ borderBottom: "1px solid var(--line-color)" }}
     >
-      {/* Fine grid */}
       <div className="absolute inset-0 pointer-events-none" style={{
         backgroundImage: `linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px)`,
         backgroundSize: "80px 80px",
       }} />
-
-      {/* Subtle top-left accent bleed */}
       <div className="absolute top-0 left-0 w-96 h-96 pointer-events-none" style={{
         background: "radial-gradient(ellipse at top left, var(--glow-color) 0%, transparent 70%)",
       }} />
 
-      {/* Version tag */}
       <div className="absolute top-28 right-6 md:right-16 flex items-center gap-2">
         <span className="font-mono text-xs" style={{ color: "var(--muted)" }}>PUBLIC BETA</span>
         <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--accent-color)", boxShadow: "0 0 6px var(--accent-color)" }} />
       </div>
 
-      {/* Mark */}
       <div className="mb-10 relative z-10" style={{ animation: "fadeUp 0.6s ease 0.05s both" }}>
         <VexaroMark size={48} />
       </div>
 
-      {/* Headline */}
       <div className="relative z-10 max-w-5xl">
         <h1
           className="font-black leading-none tracking-tight mb-8"
@@ -172,9 +212,9 @@ function Hero() {
             letterSpacing: "-0.04em",
           }}
         >
-          The internet,
+          Any website.
           <br />
-          <Typewriter words={["structured.", "on demand.", "always live.", "yours."]} />
+          <Typewriter words={["clean data.", "live API.", "your schema.", "versioned."]} />
         </h1>
 
         <div style={{ animation: "fadeUp 0.7s ease 0.25s both" }}>
@@ -182,23 +222,23 @@ function Hero() {
             className="text-base md:text-lg leading-relaxed mb-4 max-w-xl"
             style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}
           >
-            Define what data you want. Vexaro fetches it, structures it, versions it, and serves it as you want. No pipelines. No maintenance. No dirty surprises.
+            Define what data you want from any public website. Vexaro fetches it, structures it against your schema, versions every change, and serves it as a clean API. No pipelines. No maintenance. No dirty surprises.
           </p>
 
           <p
             className="text-sm leading-relaxed mb-10 max-w-xl"
             style={{ color: "var(--muted-2)", fontFamily: "var(--font-body)" }}
           >
-            You bring the idea. Vexaro brings the data.
+            Public datasets are accessible to anyone — no account needed.
           </p>
 
           <div className="flex flex-col sm:flex-row items-start gap-3">
-            <button className="vx-btn-primary">
+            <Link href="/auth" className="vx-btn-primary">
               Start building free <ArrowRight size={15} className="ml-1.5" />
-            </button>
-            <button className="vx-btn-ghost">
+            </Link>
+            <Link href="/datasets" className="vx-btn-ghost">
               Browse datasets <ArrowUpRight size={14} className="ml-1.5" />
-            </button>
+            </Link>
           </div>
 
           <p className="mt-6 font-mono text-xs" style={{ color: "var(--muted-2)" }}>
@@ -207,7 +247,6 @@ function Hero() {
         </div>
       </div>
 
-      {/* Scroll cue */}
       <div
         className="absolute bottom-8 left-6 md:left-16 flex items-center gap-3"
         style={{ animation: "fadeUp 0.7s ease 0.6s both" }}
@@ -230,17 +269,17 @@ function Hero() {
 
 function ProblemSolution() {
   const PROBLEMS = [
-    { pain: "Pipelines break without warning", detail: "Sites change structure. Your pipeline silently returns empty arrays at 2 AM." },
-    { pain: "Data is always stale", detail: "A job missed three runs. The dashboard shows last week's prices." },
-    { pain: "Fresh Reddit data is gone", detail: "Reddit killed free API access in 2023. Fresh, structured Reddit data is now genuinely scarce. Vexaro solves this quietly." },
-    { pain: "80% of your time is data prep", detail: "You wanted to ship an AI feature. Instead you spent a week cleaning CSVs." },
+    { pain: "Pipelines break without warning", detail: "Sites change their structure. Your scraper silently returns empty arrays at 2 AM and nobody notices until the damage is done." },
+    { pain: "Data is always stale", detail: "A cron job missed three runs. Your dashboard is showing last week's numbers and you didn't know." },
+    { pain: "80% of your time is data prep", detail: "You wanted to ship a feature. Instead you spent a week writing cleaning scripts, deduplicating rows, and fixing null handling." },
+    { pain: "Infrastructure nobody wants to maintain", detail: "Proxies, headless browsers, rate limiting, retries. You're maintaining a small platform just to get some structured data." },
   ];
 
   const SOLUTIONS = [
-    { win: "Schema-first extraction", detail: "Tell Vexaro what fields you need in plain English. We deliver them clean, typed, and consistent on every refresh." },
-    { win: "Refreshed every night, automatically", detail: "No cron jobs. No servers. Your data is always current when you wake up." },
-    { win: "Every change versioned forever", detail: "Nothing is overwritten. Roll back to any prior state. Full diff between any two versions." },
-    { win: "Plug straight into your pipeline", detail: "Structured JSON, ready the moment it's created. No preprocessing, no cleaning scripts. Available in any format." },
+    { win: "Schema-first extraction", detail: "Tell Vexaro what fields you need in plain English. We deliver them clean, typed, and consistent on every single refresh." },
+    { win: "Refreshed every night, automatically", detail: "No cron jobs. No servers. No missed runs. Your data is always current when you wake up." },
+    { win: "Every change versioned forever", detail: "Nothing is ever overwritten. Roll back to any prior state instantly. Full diff between any two versions." },
+    { win: "Plug straight into your pipeline", detail: "Clean structured JSON, CSV, JSONL, XML, Excel, Parquet, TSV any format, convient params, ready immediately. No preprocessing. No cleaning scripts." },
   ];
 
   return (
@@ -256,16 +295,15 @@ function ProblemSolution() {
         </Reveal>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0" style={{ border: "1px solid var(--line-color)" }}>
-          {/* Problem column */}
           <div className="p-8 md:p-12" style={{ borderRight: "1px solid var(--line-color)" }}>
             <Reveal>
               <h2
                 className="font-black tracking-tight leading-tight mb-8"
                 style={{ fontSize: "clamp(1.6rem, 3vw, 2.2rem)", fontFamily: "var(--font-display)", letterSpacing: "-0.03em" }}
               >
-                Building with web data
+                Getting web data into
                 <br />
-                <span style={{ color: "var(--muted)" }}>is broken by default.</span>
+                <span style={{ color: "var(--muted)" }}>your app is still broken.</span>
               </h2>
             </Reveal>
             <div className="space-y-6">
@@ -283,7 +321,6 @@ function ProblemSolution() {
             </div>
           </div>
 
-          {/* Solution column */}
           <div className="p-8 md:p-12" style={{ background: "var(--card-alt)" }}>
             <Reveal delay={80}>
               <div className="flex items-center gap-3 mb-6">
@@ -294,9 +331,9 @@ function ProblemSolution() {
                 className="font-black tracking-tight leading-tight mb-8"
                 style={{ fontSize: "clamp(1.6rem, 3vw, 2.2rem)", fontFamily: "var(--font-display)", letterSpacing: "-0.03em" }}
               >
-                Define your intent.
+                Describe your data.
                 <br />
-                Get a live dataset in minutes.
+                Get a live API in minutes.
               </h2>
             </Reveal>
             <div className="space-y-6">
@@ -325,26 +362,26 @@ const STEPS = [
   {
     n: "01",
     icon: <Globe size={16} />,
-    title: "Pick a source or describe your intent",
-    desc: "Paste any public URL, pick subreddits and keywords, or describe what data you need in plain English. Vexaro figures out the rest.",
+    title: "Paste URLs or describe your intent",
+    desc: "Paste/Import any public URLs directly, or describe what data you need in plain English and let Vexaro discover the sources for you.",
   },
   {
     n: "02",
     icon: <Database size={16} />,
-    title: "Define your schema",
-    desc: "Specify which fields you want in plain English. Our extraction engine maps web or Reddit data to your structure precisely. No selectors, no XPath, no brittle rules.",
+    title: "Define your schema in plain English",
+    desc: "Specify which fields you want and what they mean. Our AI extraction engine maps web content to your structure precisely. No selectors, no XPath, no brittle rules.",
   },
   {
     n: "03",
     icon: <GitBranch size={16} />,
     title: "Dataset goes live, versioned from day one",
-    desc: "Vexaro refreshes nightly. Trigger extra refreshes via your ping URL. Every change is stored permanently and nothing is ever lost.",
+    desc: "Vexaro refreshes nightly. Trigger extra refreshes via your ping URL or webhook. Every change is a permanent snapshot — nothing is ever lost.",
   },
   {
     n: "04",
     icon: <Key size={16} />,
-    title: "Download, clone, or plug in via Api",
-    desc: "Download directly, clone a public dataset and extend it, or wire it into your AI pipeline. Clean structured JSON, ready immediately. Available in any format.",
+    title: "Consume via API, download, or clone",
+    desc: "Hit your public endpoint directly — no account needed. Download in any format. Clone any public dataset and extend it your way.",
   },
 ];
 
@@ -363,10 +400,11 @@ function HowItWorks() {
             className="font-black tracking-tight leading-tight mb-4"
             style={{ fontSize: "clamp(2rem, 4vw, 3.5rem)", fontFamily: "var(--font-display)", letterSpacing: "-0.04em" }}
           >
-            Four steps from intent<br className="hidden md:block" /> to structured dataset.
+            Four steps from intent
+            <br className="hidden md:block" /> to live structured data.
           </h2>
           <p className="text-sm md:text-base mb-14 max-w-lg" style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}>
-            No brittle pipelines. No maintenance overhead. Define your intent and we handle everything else.
+            No infrastructure to manage. No pipelines to maintain. Define your intent and we handle everything else.
           </p>
         </Reveal>
 
@@ -374,20 +412,14 @@ function HowItWorks() {
           {STEPS.map(({ n, icon, title, desc }, i) => (
             <Reveal key={n} delay={i * 70}>
               <div
-                className="p-6 h-full group transition-colors duration-200"
-                style={{
-                  borderRight: i < STEPS.length - 1 ? "1px solid var(--line-color)" : "none",
-                  cursor: "default",
-                }}
+                className="p-6 h-full"
+                style={{ borderRight: i < STEPS.length - 1 ? "1px solid var(--line-color)" : "none" }}
               >
                 <div className="flex items-center justify-between mb-6">
                   <span className="font-mono text-xs" style={{ color: "var(--muted-2)" }}>{n}</span>
                   <div
                     className="w-8 h-8 flex items-center justify-center"
-                    style={{
-                      border: "1px solid var(--line-color)",
-                      color: "var(--accent-color)",
-                    }}
+                    style={{ border: "1px solid var(--line-color)", color: "var(--accent-color)" }}
                   >
                     {icon}
                   </div>
@@ -406,15 +438,15 @@ function HowItWorks() {
 // ── Features ──────────────────────────────────────────────────────────────────
 
 const FEATURES = [
-  { icon: <Database size={15} />, title: "Intent-Driven Extraction", desc: "Describe your need in plain English, define your schema, and Vexaro extracts exactly that from any web source. Typed, clean, and consistent on every refresh." },
-  { icon: <Globe size={15} />, title: "Reddit Data, Fresh Daily", desc: "Subreddits, keywords, date ranges, and post caps. Full post body, nested comments, scores, flairs, and metadata. The freshest Reddit data available anywhere." },
-  { icon: <RefreshCw size={15} />, title: "Nightly Automatic Refresh", desc: "Your source is re-processed every night. Your dataset is always current by morning. No cron jobs to manage." },
-  { icon: <Zap size={15} />, title: "On-Demand Ping URL", desc: "Every dataset gets a dedicated ping URL. Wire it into any scheduler for additional refreshes whenever you need fresher data." },
-  { icon: <GitBranch size={15} />, title: "Immutable Version History", desc: "Every refresh is a permanent snapshot. Nothing is ever overwritten. Your full history is always queryable and downloadable." },
-  { icon: <Diff size={15} />, title: "Visual Diff Viewer", desc: "See exactly what changed between any two versions. Added rows, removed fields, modified values — all clearly visualized." },
-  { icon: <Undo2 size={15} />, title: "One-Click Rollback", desc: "A bad refresh brought in dirty data? Roll back to any prior version instantly. Your pipeline stays stable." },
-  { icon: <Copy size={15} />, title: "Clone & Extend", desc: "Fork any public dataset like a GitHub repo. Extend it with your own fields, add your own sources, and optionally publish it back to the community." },
-  { icon: <Shield size={15} />, title: "AI Pipeline Ready", desc: "Clean, structured JSON with typed fields and consistent shape. Honest nulls, preserved duplicates. Drop it straight into your pipeline or fine-tune your model." },
+  { icon: <Database size={15} />, title: "Intent-Driven Extraction", desc: "Describe your need in plain English, define your schema, and Vexaro extracts exactly that from any public web source. Typed, clean, and consistent on every refresh." },
+  { icon: <FileJson size={15} />, title: "Any Format, Any Params", desc: "Consume your dataset as JSON, CSV, JSONL, XML, Excel, TSV, Parquet. Filter, sort, deduplicate, denull, paginate — all via query params. Public endpoints need no account." },
+  { icon: <RefreshCw size={15} />, title: "Nightly Automatic Refresh", desc: "Your sources are re-processed every night. Your dataset is always current by morning. No cron jobs. No missed runs. No maintenance." },
+  { icon: <Zap size={15} />, title: "On-Demand Ping URL", desc: "Every dataset gets a dedicated ping URL. Wire it into any external scheduler or CI pipeline for additional refreshes whenever you need fresher data." },
+  { icon: <Webhook size={15} />, title: "Webhook Notifications", desc: "Register a webhook endpoint and Vexaro will notify you the moment your dataset finishes refreshing. Build reactive pipelines without polling." },
+  { icon: <GitBranch size={15} />, title: "Immutable Version History", desc: "Every refresh is a permanent snapshot. Nothing is ever overwritten. Your full history is always queryable, diffable, and downloadable." },
+  { icon: <Diff size={15} />, title: "Visual Diff Viewer", desc: "See exactly what changed between any two versions. Added rows, removed entries, modified field values — all clearly visualized side by side." },
+  { icon: <Undo2 size={15} />, title: "One-Click Rollback", desc: "A bad refresh brought in dirty data? Roll back to any prior version instantly. Freeze it to lock it permanently. Your pipeline stays stable." },
+  { icon: <Copy size={15} />, title: "Clone & Extend", desc: "Fork any public dataset like a GitHub repo. Add your own schema fields, your own URLs, and publish it back. You own it fully from day one." },
 ];
 
 function Features() {
@@ -434,21 +466,18 @@ function Features() {
           >
             Everything your pipeline needs.
             <br className="hidden md:block" />
-            <span style={{ color: "var(--muted)" }}>Nothing it doesn't.</span>
+            <span style={{ color: "var(--muted)" }}> Nothing it doesn't.</span>
           </h2>
           <p className="text-sm md:text-base mb-14 max-w-lg" style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}>
-            Built for developers who want reliable, structured web and Reddit data without managing the infrastructure behind it.
+            Built for anyone who needs reliable, structured web data without managing the infrastructure behind it.
           </p>
         </Reveal>
 
-        <div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-          style={{ border: "1px solid var(--line-color)" }}
-        >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ border: "1px solid var(--line-color)" }}>
           {FEATURES.map(({ icon, title, desc }, i) => (
             <Reveal key={title} delay={(i % 3) * 50}>
               <div
-                className="p-6 transition-colors duration-200 group"
+                className="p-6"
                 style={{
                   borderRight: (i % 3 !== 2) ? "1px solid var(--line-color)" : "none",
                   borderBottom: i < FEATURES.length - (FEATURES.length % 3 || 3) ? "1px solid var(--line-color)" : "none",
@@ -471,22 +500,20 @@ function Features() {
   );
 }
 
-// ── Trending Datasets ─────────────────────────────────────────────────────────
+// ── Datasets Preview ──────────────────────────────────────────────────────────
 
-const TRENDING = [
-  { name: "r/investing", desc: "Top posts, sentiment and discussion from r/investing, refreshed daily", clones: 186, category: "Reddit" },
-  { name: "remote-jobs", desc: "Live remote job listings from WeWorkRemotely, structured and versioned", clones: 164, category: "Web" },
-  { name: "r/MachineLearning", desc: "Top posts, comments and sentiment from the ML community", clones: 142, category: "Reddit" },
-  { name: "crypto-prices", desc: "Top 100 cryptocurrencies with daily price data from CoinGecko", clones: 138, category: "Web" },
-  { name: "r/wallstreetbets", desc: "WSB posts, flairs, upvote data and daily sentiment signal", clones: 121, category: "Reddit" },
-  { name: "hacker-news-top", desc: "Top 100 HN stories, comment counts and scores refreshed daily", clones: 98, category: "Web" },
-  { name: "r/startups", desc: "Founder discussions, ask posts and top comments from r/startups", clones: 87, category: "Reddit" },
-  { name: "github-trending", desc: "Trending repositories across all languages, updated nightly", clones: 76, category: "Web" },
-  { name: "r/worldnews", desc: "Breaking news posts and top-voted comments from r/worldnews", clones: 68, category: "Reddit" },
-  { name: "nba-scores", desc: "Live NBA scores, player stats and standings refreshed nightly", clones: 54, category: "Web" },
+const DATASETS = [
+  { name: "github-trending", desc: "Trending repositories across all languages with stars, forks and descriptions", clones: 212, category: "Dev" },
+  { name: "hacker-news-top", desc: "Top 100 HN stories with scores, comment counts and URLs refreshed daily", clones: 189, category: "Tech" },
+  { name: "remote-jobs", desc: "Live remote job listings with role, company, salary range and stack required", clones: 176, category: "Jobs" },
+  { name: "yc-companies", desc: "Y Combinator companies with batch, description, founder names and website", clones: 154, category: "Startups" },
+  { name: "crypto-prices", desc: "Top 100 cryptocurrencies with price, market cap and 24h change from CoinGecko", clones: 143, category: "Finance" },
+  { name: "ai-tools-directory", desc: "AI tools with category, pricing model, description and launch date", clones: 128, category: "AI" },
+  { name: "arxiv-ai-papers", desc: "Latest AI and ML papers from ArXiv with abstracts, authors and citation counts", clones: 97, category: "Research" },
+  { name: "product-hunt-launches", desc: "Daily Product Hunt launches with upvotes, tagline, maker and category", clones: 84, category: "Tech" },
 ];
 
-function TrendingDatasets() {
+function DatasetsPreview() {
   return (
     <section id="datasets" className="vx-section" style={{ borderBottom: "1px solid var(--line-color)" }}>
       <div className="vx-container">
@@ -503,16 +530,14 @@ function TrendingDatasets() {
           >
             The data you actually need,
             <br className="hidden md:block" />
-            <span style={{ color: "var(--muted)" }}>already built.</span>
+            <span style={{ color: "var(--muted)" }}> already built.</span>
           </h2>
           <p className="text-sm md:text-base mb-14 max-w-lg" style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}>
-            Curated web and Reddit datasets across finance, tech, sports, and entertainment. Versioned, maintained, and ready to clone. No account needed to access public endpoints.
+            Curated web datasets across tech, finance, jobs, AI and research. Versioned, maintained, and refreshed nightly. Hit any public endpoint directly — no account needed.
           </p>
         </Reveal>
 
-        {/* Dataset table */}
         <div style={{ border: "1px solid var(--line-color)" }}>
-          {/* Header */}
           <div
             className="grid font-mono text-xs py-3 px-4"
             style={{
@@ -523,18 +548,18 @@ function TrendingDatasets() {
             }}
           >
             <span>DATASET</span>
-            <span className="text-right">SOURCE</span>
+            <span className="text-right">CATEGORY</span>
             <span className="text-right w-16">CLONES</span>
           </div>
 
-          {TRENDING.map(({ name, desc, clones, category }, i) => (
+          {DATASETS.map(({ name, desc, clones, category }, i) => (
             <Reveal key={name} delay={i * 40}>
               <div
                 className="grid items-center px-4 py-4 group cursor-pointer transition-colors duration-150"
                 style={{
                   gridTemplateColumns: "1fr auto auto",
                   gap: "1rem",
-                  borderBottom: i < TRENDING.length - 1 ? "1px solid var(--line-color)" : "none",
+                  borderBottom: i < DATASETS.length - 1 ? "1px solid var(--line-color)" : "none",
                 }}
               >
                 <div className="min-w-0">
@@ -550,10 +575,10 @@ function TrendingDatasets() {
                   <p className="text-xs truncate" style={{ color: "var(--muted)", paddingLeft: "1.2rem" }}>{desc}</p>
                 </div>
                 <span
-                  className="font-mono text-xs text-right px-2 py-0.5"
+                  className="font-mono text-right px-2 py-0.5"
                   style={{
-                    color: category === "Reddit" ? "#ff6314" : "var(--accent-color)",
-                    border: `1px solid ${category === "Reddit" ? "rgba(255,99,20,0.2)" : "rgba(0,212,200,0.2)"}`,
+                    color: "var(--accent-color)",
+                    border: "1px solid rgba(0,212,200,0.2)",
                     fontSize: "0.6rem",
                     letterSpacing: "0.06em",
                   }}
@@ -568,9 +593,9 @@ function TrendingDatasets() {
 
         <Reveal delay={100}>
           <div className="mt-6 flex justify-end">
-            <button className="vx-btn-ghost text-sm">
+            <Link href="/datasets" className="vx-btn-ghost text-sm">
               View all datasets <ChevronRight size={13} className="ml-1" />
-            </button>
+            </Link>
           </div>
         </Reveal>
       </div>
@@ -580,12 +605,18 @@ function TrendingDatasets() {
 
 // ── Pricing ───────────────────────────────────────────────────────────────────
 
+type AnyPlan =
+  | typeof FREE_PLAN
+  | typeof STARTER_PLAN
+  | typeof PRO_PLAN
+  | typeof SCALE_PLAN;
+
 function PricingCard({
   plan,
   highlight = false,
   delay = 0,
 }: {
-  plan: typeof FREE_PLAN;
+  plan: AnyPlan;
   highlight?: boolean;
   delay?: number;
 }) {
@@ -594,7 +625,9 @@ function PricingCard({
       <div
         className="relative flex flex-col h-full"
         style={{
-          border: highlight ? "1px solid var(--accent-color)" : "1px solid var(--line-color)",
+          border: highlight
+            ? "1px solid var(--accent-color)"
+            : "1px solid var(--line-color)",
           background: highlight ? "var(--card-alt)" : "transparent",
         }}
       >
@@ -608,93 +641,137 @@ function PricingCard({
         <div className="p-8 flex-1">
           <div className="flex items-start justify-between mb-6">
             <div>
-              <p className="font-mono text-xs tracking-widest uppercase mb-1" style={{ color: highlight ? "var(--accent-color)" : "var(--muted-2)" }}>
+              <p
+                className="font-mono text-xs tracking-widest uppercase mb-1"
+                style={{
+                  color: highlight ? "var(--accent-color)" : "var(--muted-2)",
+                }}
+              >
                 {plan.name}
               </p>
               <div className="flex items-baseline gap-1">
                 <span
                   className="font-black tracking-tight"
-                  style={{ fontSize: "2.8rem", fontFamily: "var(--font-display)", letterSpacing: "-0.04em" }}
+                  style={{
+                    fontSize: "2.8rem",
+                    fontFamily: "var(--font-display)",
+                    letterSpacing: "-0.04em",
+                  }}
                 >
                   {plan.price}
                 </span>
-                {plan.period && (
-                  <span className="text-sm" style={{ color: "var(--muted)" }}>{plan.period}</span>
-                )}
+                <span className="text-sm" style={{ color: "var(--muted)" }}>
+                  {plan.period}
+                </span>
               </div>
             </div>
-            {highlight && (
-              <span
-                className="font-mono text-xs px-2 py-1"
-                style={{
-                  border: "1px solid var(--accent-color)",
-                  color: "var(--accent-color)",
-                  fontSize: "0.6rem",
-                  letterSpacing: "0.08em",
-                }}
-              >
-                POPULAR
-              </span>
-            )}
           </div>
 
-          <p className="text-xs mb-8" style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}>
+          <p
+            className="text-xs mb-8"
+            style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}
+          >
             {plan.desc}
           </p>
 
           <div className="space-y-3">
             {plan.features.map((f) => (
               <div key={f} className="flex items-start gap-3">
-                <Check size={12} className="mt-0.5 shrink-0" style={{ color: highlight ? "var(--accent-color)" : "var(--muted-2)" }} />
-                <span className="text-xs" style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}>{f}</span>
+                <Check
+                  size={12}
+                  className="mt-0.5 shrink-0"
+                  style={{
+                    color: highlight
+                      ? "var(--accent-color)"
+                      : "var(--muted-2)",
+                  }}
+                />
+                <span
+                  className="text-xs"
+                  style={{
+                    color: "var(--muted)",
+                    fontFamily: "var(--font-body)",
+                  }}
+                >
+                  {f}
+                </span>
               </div>
             ))}
           </div>
         </div>
 
         <div className="p-8 pt-0">
-          <button
-            className={highlight ? "vx-btn-primary w-full justify-center" : "vx-btn-outline w-full justify-center"}
-            style={{ width: "100%" }}
+          <Link
+            href={plan.href}
+            className={
+              highlight
+                ? "vx-btn-primary w-full justify-center"
+                : "vx-btn-outline w-full justify-center"
+            }
+            style={{ display: "flex", width: "100%" }}
           >
             {plan.cta}
-          </button>
+          </Link>
         </div>
       </div>
     </Reveal>
   );
 }
 
+// ── Pricing Section ───────────────────────────────────────────────────────────
+
 function Pricing() {
   return (
-    <section id="pricing" className="vx-section" style={{ borderBottom: "1px solid var(--line-color)" }}>
+    <section
+      id="pricing"
+      className="vx-section"
+      style={{ borderBottom: "1px solid var(--line-color)" }}
+    >
       <div className="vx-container">
         <Reveal>
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-8 h-px" style={{ background: "var(--accent-color)" }} />
-            <span className="font-mono text-xs tracking-widest uppercase" style={{ color: "var(--accent-color)" }}>
+            <div
+              className="w-8 h-px"
+              style={{ background: "var(--accent-color)" }}
+            />
+            <span
+              className="font-mono text-xs tracking-widest uppercase"
+              style={{ color: "var(--accent-color)" }}
+            >
               Pricing
             </span>
           </div>
           <h2
             className="font-black tracking-tight leading-tight mb-4"
-            style={{ fontSize: "clamp(2rem, 4vw, 3.5rem)", fontFamily: "var(--font-display)", letterSpacing: "-0.04em" }}
+            style={{
+              fontSize: "clamp(2rem, 4vw, 3.5rem)",
+              fontFamily: "var(--font-display)",
+              letterSpacing: "-0.04em",
+            }}
           >
-            Two plans. No surprises.
+            Four plans. No surprises.
           </h2>
-          <p className="text-sm md:text-base mb-14 max-w-lg" style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}>
-            Start free. Move to Starter when you need daily refresh, unlimited version history, and full marketplace access.
+          <p
+            className="text-sm md:text-base mb-14 max-w-lg"
+            style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}
+          >
+            Start free. Upgrade when you need nightly refresh, version history,
+            and live API access. Flat pricing — no usage bills, no hidden fees.
           </p>
         </Reveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <PricingCard plan={FREE_PLAN} delay={0} />
-          <PricingCard plan={PRO_PLAN} highlight delay={80} />
+          <PricingCard plan={STARTER_PLAN} highlight delay={80} />
+          <PricingCard plan={PRO_PLAN} delay={160} />
+          <PricingCard plan={SCALE_PLAN} delay={240} />
         </div>
 
-        <Reveal delay={160}>
+        <Reveal delay={280}>
           <p className="mt-8 font-mono text-xs" style={{ color: "var(--muted-2)" }}>
-            Marketplace datasets at <span style={{ color: "var(--fg)" }}>$9 one-time</span>. Yours forever with all future versions included.
+            Premium Marketplace datasets at{" "}
+            <span style={{ color: "#f59e0b" }}>$9 one-time</span>. Yours
+            forever with all future versions included.
           </p>
         </Reveal>
       </div>
@@ -723,15 +800,15 @@ function CTA() {
           <Reveal delay={100}>
             <div>
               <p className="text-sm md:text-base mb-8" style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}>
-                The internet is full of data. Vexaro makes it structured, versioned, and yours. Your first dataset is free. No credit card required.
+                Any website. Any schema. Clean, versioned, and live via API. Your first dataset is free. No credit card required.
               </p>
               <div className="flex flex-col sm:flex-row items-start gap-3">
-                <button className="vx-btn-primary">
+                <Link href="/auth" className="vx-btn-primary">
                   Get started free <ArrowRight size={15} className="ml-1.5" />
-                </button>
-                <button className="vx-btn-ghost">
-                  View documentation <ArrowUpRight size={14} className="ml-1.5" />
-                </button>
+                </Link>
+                <Link href="/datasets" className="vx-btn-ghost">
+                  Browse datasets <ArrowUpRight size={14} className="ml-1.5" />
+                </Link>
               </div>
             </div>
           </Reveal>
@@ -741,7 +818,7 @@ function CTA() {
   );
 }
 
-// ── Global Styles + Page ──────────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
   return (
@@ -760,77 +837,33 @@ export default function LandingPage() {
           --font-display: 'DM Serif Display', 'Playfair Display', Georgia, serif;
           --font-body: 'DM Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
         }
-
-        body {
-          background: var(--bg);
-          color: var(--fg);
-        }
-
-        .vx-section {
-          padding: 5rem 0;
-        }
-        @media (min-width: 768px) {
-          .vx-section { padding: 7rem 0; }
-        }
-
-        .vx-container {
-          max-width: 1100px;
-          margin: 0 auto;
-          padding: 0 1.5rem;
-        }
-        @media (min-width: 768px) {
-          .vx-container { padding: 0 4rem; }
-        }
-
+        body { background: var(--bg); color: var(--fg); }
+        .vx-section { padding: 5rem 0; }
+        @media (min-width: 768px) { .vx-section { padding: 7rem 0; } }
+        .vx-container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+        @media (min-width: 768px) { .vx-container { padding: 0 4rem; } }
         .vx-btn-primary {
-          display: inline-flex;
-          align-items: center;
-          background: var(--accent-color);
-          color: #0a0a0a;
-          font-family: var(--font-body);
-          font-weight: 700;
-          font-size: 0.8125rem;
-          padding: 0.65rem 1.4rem;
-          letter-spacing: 0.01em;
-          border: none;
-          cursor: pointer;
-          transition: opacity 0.15s;
-          white-space: nowrap;
+          display: inline-flex; align-items: center;
+          background: var(--accent-color); color: #0a0a0a;
+          font-family: var(--font-body); font-weight: 700; font-size: 0.8125rem;
+          padding: 0.65rem 1.4rem; letter-spacing: 0.01em;
+          border: none; cursor: pointer; transition: opacity 0.15s; white-space: nowrap;
         }
         .vx-btn-primary:hover { opacity: 0.88; }
-
         .vx-btn-ghost {
-          display: inline-flex;
-          align-items: center;
-          background: transparent;
-          color: var(--muted);
-          font-family: var(--font-body);
-          font-weight: 500;
-          font-size: 0.8125rem;
-          padding: 0.65rem 1.4rem;
-          border: 1px solid var(--line-color);
-          cursor: pointer;
-          transition: color 0.15s, border-color 0.15s;
-          white-space: nowrap;
+          display: inline-flex; align-items: center;
+          background: transparent; color: var(--muted);
+          font-family: var(--font-body); font-weight: 500; font-size: 0.8125rem;
+          padding: 0.65rem 1.4rem; border: 1px solid var(--line-color);
+          cursor: pointer; transition: color 0.15s, border-color 0.15s; white-space: nowrap;
         }
-        .vx-btn-ghost:hover {
-          color: var(--fg);
-          border-color: var(--muted-2);
-        }
-
+        .vx-btn-ghost:hover { color: var(--fg); border-color: var(--muted-2); }
         .vx-btn-outline {
-          display: inline-flex;
-          align-items: center;
-          background: transparent;
-          color: var(--fg);
-          font-family: var(--font-body);
-          font-weight: 600;
-          font-size: 0.8125rem;
-          padding: 0.65rem 1.4rem;
-          border: 1px solid var(--line-color);
-          cursor: pointer;
-          transition: border-color 0.15s;
-          white-space: nowrap;
+          display: inline-flex; align-items: center;
+          background: transparent; color: var(--fg);
+          font-family: var(--font-body); font-weight: 600; font-size: 0.8125rem;
+          padding: 0.65rem 1.4rem; border: 1px solid var(--line-color);
+          cursor: pointer; transition: border-color 0.15s; white-space: nowrap;
         }
         .vx-btn-outline:hover { border-color: var(--muted); }
       `}</style>
@@ -845,7 +878,7 @@ export default function LandingPage() {
       <ProblemSolution />
       <HowItWorks />
       <Features />
-      <TrendingDatasets />
+      <DatasetsPreview />
       <Pricing />
       <CTA />
       <Footer />

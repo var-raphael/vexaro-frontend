@@ -20,6 +20,7 @@ import {
   XCircle,
   AlertTriangle,
 } from "lucide-react";
+import { FaGlobe } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 
@@ -53,14 +54,12 @@ const HARD_BLOCKED = [
   "twitter.com", "x.com", "facebook.com", "instagram.com",
   "tiktok.com", "youtube.com", "youtu.be", "linkedin.com",
   "snapchat.com", "pinterest.com", "threads.net",
+  "reddit.com",
+  "old.reddit.com",
 ];
 
 const SOFT_BLOCKED = [
-  { domain: "github.com", label: "GitHub" },
-  { domain: "news.ycombinator.com", label: "Hacker News" },
-  { domain: "producthunt.com", label: "Product Hunt" },
-  { domain: "reddit.com", label: "Reddit" },
-  { domain: "old.reddit.com", label: "Reddit" },
+  { domain: "amazon", label: "Amazon" },
 ];
 
 function getDomain(url: string): string {
@@ -89,7 +88,11 @@ function analyzeURLs(raw: string): URLAnalysis {
       hardBlocked.push(url);
       continue;
     }
-    const soft = SOFT_BLOCKED.find((b) => domain === b.domain || domain.endsWith("." + b.domain));
+    const soft = SOFT_BLOCKED.find((b) =>
+      b.domain === "amazon"
+        ? domain === "amazon.com" || domain.includes("amazon.")
+        : domain === b.domain || domain.endsWith("." + b.domain)
+    );
     if (soft) {
       softBlocked.push({ url, label: soft.label });
       continue;
@@ -495,10 +498,10 @@ const validate = () => {
           <div className="mt-2 px-3 py-2.5 rounded-md border border-yellow-500/30 bg-yellow-500/5 space-y-1">
             <div className="flex items-center gap-1.5">
               <AlertTriangle size={11} className="text-yellow-500 shrink-0" />
-              <p className="text-[11px] font-medium text-yellow-500">
-                {urlAnalysis.softBlocked.length} URL{urlAnalysis.softBlocked.length > 1 ? "s" : ""} not queued — dedicated pipelines coming soon
-              </p>
-            </div>
+                  <p className="text-[11px] font-medium text-yellow-500">
+                    {urlAnalysis.softBlocked.length} URL{urlAnalysis.softBlocked.length > 1 ? "s" : ""} — Amazon URLs must use the Amazon pipeline.
+                    </p>
+               </div>
             <div className="space-y-0.5 pl-4">
               {urlAnalysis.softBlocked.map(({ url, label }) => (
                 <p key={url} className="text-[10px] font-mono text-yellow-500/70 truncate">
@@ -599,9 +602,12 @@ export default function CreateDatasetPage() {
   return (
     <div className="max-w-2xl mx-auto px-5 md:px-8 py-10">
       <div className="mb-8">
-        <p className="text-xs font-mono text-muted-foreground tracking-widest uppercase mb-1">Vexaro</p>
+        <div className="flex items-center gap-2 mb-1">
+           <FaGlobe size={14} className="text-primary" />
+           <p className="text-xs font-mono text-muted-foreground tracking-widest uppercase">Web Pipeline</p>
+              </div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-1">
-          Create <span className="text-primary">Dataset</span>
+  Create <span className="text-primary">Web</span> Dataset
         </h1>
         <p className="text-sm text-muted-foreground">Configure your dataset and define the extraction pipeline.</p>
       </div>

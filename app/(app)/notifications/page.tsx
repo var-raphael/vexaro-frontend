@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -12,63 +12,82 @@ import {
   Bell,
   CheckCheck,
   Download,
+  Trash2,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type NotifType =
-  | "refresh"
-  | "version"
-  | "clone"
-  | "download"
-  | "limit"
+type NotifKind =
+  | "refresh_complete"
+  | "new_version"
+  | "dataset_created"
+  | "first_dataset"
+  | "clone_created"
+  | "dataset_cloned"
+  | "dataset_deleted"
   | "announcement";
 
 interface Notification {
-  id: string;
-  type: NotifType;
-  title: string;
-  desc: string;
-  time: string;
-  read: boolean;
+  notification_id: number;
+  user_id: string;
+  dataset_id: number | null;
+  kind: NotifKind;
+  message: string;
+  is_read: boolean;
+  emailed: boolean;
+  created_at: string;
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const TYPE_CONFIG: Record<
-  NotifType,
+const KIND_CONFIG: Record<
+  NotifKind,
   { icon: React.ElementType; color: string; bg: string; label: string }
 > = {
-  refresh: {
+  refresh_complete: {
     icon: RefreshCw,
     label: "Dataset Refresh",
     color: "text-primary",
     bg: "bg-accent border-primary/20",
   },
-  version: {
+  new_version: {
     icon: GitBranch,
     label: "New Version",
     color: "text-primary",
     bg: "bg-accent border-primary/20",
   },
-  clone: {
+  dataset_created: {
+    icon: Plus,
+    label: "Dataset Created",
+    color: "text-primary",
+    bg: "bg-accent border-primary/20",
+  },
+  first_dataset: {
+    icon: Plus,
+    label: "First Dataset",
+    color: "text-primary",
+    bg: "bg-accent border-primary/20",
+  },
+  clone_created: {
+    icon: Copy,
+    label: "Clone Created",
+    color: "text-primary",
+    bg: "bg-accent border-primary/20",
+  },
+  dataset_cloned: {
     icon: Copy,
     label: "Clone Activity",
     color: "text-primary",
     bg: "bg-accent border-primary/20",
   },
-  download: {
-    icon: Download,
-    label: "Download",
-    color: "text-primary",
-    bg: "bg-accent border-primary/20",
-  },
-  limit: {
-    icon: AlertTriangle,
-    label: "Plan Limit",
-    color: "text-yellow-400",
-    bg: "bg-yellow-500/10 border-yellow-500/20",
+  dataset_deleted: {
+    icon: Trash2,
+    label: "Dataset Deleted",
+    color: "text-destructive",
+    bg: "bg-destructive/10 border-destructive/20",
   },
   announcement: {
     icon: Megaphone,
@@ -78,83 +97,58 @@ const TYPE_CONFIG: Record<
   },
 };
 
-// ── Mock data — replace with real fetch ───────────────────────────────────────
+const FALLBACK_CONFIG = {
+  icon: Bell,
+  label: "Notification",
+  color: "text-primary",
+  bg: "bg-accent border-primary/20",
+};
 
-const INITIAL: Notification[] = [
-  {
-    id: "1", type: "limit", read: false,
-    title: "You're approaching your dataset limit",
-    desc: "You have 1 dataset slot remaining on your current plan. Upgrade to Pro for unlimited datasets.",
-    time: "10 min ago",
-  },
-  {
-    id: "2", type: "refresh", read: false,
-    title: "crypto-prices refreshed successfully",
-    desc: "Your dataset was updated with the latest data. 47 records changed since the last version.",
-    time: "2 hours ago",
-  },
-  {
-    id: "3", type: "version", read: false,
-    title: "New version saved — nba-scores v5",
-    desc: "Version v5 was automatically saved after detecting changes in 12 fields.",
-    time: "5 hours ago",
-  },
-  {
-    id: "4", type: "clone", read: false,
-    title: "Someone cloned your github-trending dataset",
-    desc: "Your public dataset github-trending was cloned by another user. It now has 120 clones.",
-    time: "Yesterday",
-  },
-  {
-    id: "5", type: "download", read: true,
-    title: "Your dataset download is ready",
-    desc: "crypto-prices v12 has been packaged and is ready to download as JSON.",
-    time: "2 days ago",
-  },
-  {
-    id: "6", type: "refresh", read: true,
-    title: "hacker-news-top refreshed successfully",
-    desc: "Your dataset was updated. 23 new stories added, 8 removed since the last version.",
-    time: "2 days ago",
-  },
-  {
-    id: "7", type: "announcement", read: true,
-    title: "Vexaro is now live 🎉",
-    desc: "Welcome to Vexaro! We're officially out of development. Explore public datasets, build your own, and share your data with the community.",
-    time: "3 days ago",
-  },
-  {
-    id: "8", type: "version", read: true,
-    title: "New version saved — hacker-news-top v8",
-    desc: "Version v8 was automatically saved after detecting changes in 23 fields.",
-    time: "4 days ago",
-  },
-  {
-    id: "9", type: "clone", read: true,
-    title: "Someone cloned your crypto-prices dataset",
-    desc: "Your public dataset crypto-prices was cloned. It now has 143 clones total.",
-    time: "6 days ago",
-  },
-  {
-    id: "10", type: "refresh", read: true,
-    title: "imdb-top-250 refreshed successfully",
-    desc: "Your dataset was updated. 3 new titles added, ratings updated across 18 records.",
-    time: "1 week ago",
-  },
-];
+function formatTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins} min ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString();
+}
 
 // ── Notification Row ──────────────────────────────────────────────────────────
 
-function NotifRow({ notif }: { notif: Notification }) {
-  const { icon: Icon, color, bg, label } = TYPE_CONFIG[notif.type];
+function NotifRow({
+  notif,
+  onMarkRead,
+}: {
+  notif: Notification;
+  onMarkRead: (id: number) => void;
+}) {
+  const config = KIND_CONFIG[notif.kind] ?? FALLBACK_CONFIG;
+  const { icon: Icon, color, bg, label } = config;
 
   return (
-    <div className={cn(
-      "flex items-start gap-4 p-4 rounded-lg border transition-colors",
-      notif.read ? "bg-card border-border" : "bg-accent/10 border-primary/20"
-    )}>
+    <div
+      className={cn(
+        "flex items-start gap-4 p-4 rounded-lg border transition-colors cursor-pointer",
+        notif.is_read
+          ? "bg-card border-border"
+          : "bg-accent/10 border-primary/20"
+      )}
+      onClick={() => !notif.is_read && onMarkRead(notif.notification_id)}
+    >
       {/* Icon */}
-      <div className={cn("w-9 h-9 rounded-md border flex items-center justify-center shrink-0 mt-0.5", bg)}>
+      <div
+        className={cn(
+          "w-9 h-9 rounded-md border flex items-center justify-center shrink-0 mt-0.5",
+          bg
+        )}
+      >
         <Icon size={15} className={color} />
       </div>
 
@@ -162,14 +156,17 @@ function NotifRow({ notif }: { notif: Notification }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2 mb-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-medium text-foreground">{notif.title}</p>
-            {!notif.read && (
+            <p className="text-sm font-medium text-foreground">
+              {notif.message}
+            </p>
+            {!notif.is_read && (
               <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1" />
             )}
           </div>
-          <span className="text-xs text-muted-foreground shrink-0">{notif.time}</span>
+          <span className="text-xs text-muted-foreground shrink-0">
+            {formatTime(notif.created_at)}
+          </span>
         </div>
-        <p className="text-xs text-muted-foreground leading-relaxed">{notif.desc}</p>
         <span className="inline-block mt-2 text-xs font-mono text-muted-foreground bg-background border border-border px-2 py-0.5 rounded-full">
           {label}
         </span>
@@ -181,14 +178,86 @@ function NotifRow({ notif }: { notif: Notification }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function NotificationsPage() {
-  const [notifs, setNotifs] = useState<Notification[]>(INITIAL);
+  const { user } = useAuth();
+  const [notifs, setNotifs] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const unreadCount = notifs.filter((n) => !n.read).length;
-  const unread = notifs.filter((n) => !n.read);
-  const read = notifs.filter((n) => n.read);
+  const fetchNotifications = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/notifications?user_id=${user.id}`
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      setNotifs(data.notifications ?? []);
+      setUnreadCount(data.unread_count ?? 0);
+    } catch (err) {
+      console.error("[notifications] fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
 
-  function markAllRead() {
-    setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  async function markRead(notificationID: number) {
+    // Optimistic update
+    setNotifs((prev) =>
+      prev.map((n) =>
+        n.notification_id === notificationID ? { ...n, is_read: true } : n
+      )
+    );
+    setUnreadCount((prev) => Math.max(0, prev - 1));
+
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/read`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user?.id,
+          notification_id: notificationID,
+        }),
+      });
+    } catch (err) {
+      console.error("[notifications] mark read error:", err);
+    }
+  }
+
+  async function markAllRead() {
+    // Optimistic update
+    setNotifs((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    setUnreadCount(0);
+
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/read`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: user?.id }),
+      });
+    } catch (err) {
+      console.error("[notifications] mark all read error:", err);
+    }
+  }
+
+  const unread = notifs.filter((n) => !n.is_read);
+  const read = notifs.filter((n) => n.is_read);
+
+  if (loading) {
+    return (
+      <div className="max-w-3xl mx-auto px-5 md:px-8 py-10">
+        <div className="h-8 w-48 bg-accent rounded animate-pulse mb-2" />
+        <div className="h-4 w-64 bg-accent rounded animate-pulse mb-8" />
+        <div className="flex flex-col gap-2">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-20 bg-accent rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -223,7 +292,9 @@ export default function NotificationsPage() {
         <Card className="bg-card border-border">
           <CardContent className="flex flex-col items-center justify-center py-24 text-center">
             <Bell size={32} className="text-muted-foreground mb-4" />
-            <p className="text-sm font-medium text-foreground mb-1">No notifications yet</p>
+            <p className="text-sm font-medium text-foreground mb-1">
+              No notifications yet
+            </p>
             <p className="text-xs text-muted-foreground">
               We'll notify you when something happens with your datasets.
             </p>
@@ -237,7 +308,9 @@ export default function NotificationsPage() {
                 Unread · {unread.length}
               </p>
               <div className="flex flex-col gap-2">
-                {unread.map((n) => <NotifRow key={n.id} notif={n} />)}
+                {unread.map((n) => (
+                  <NotifRow key={n.notification_id} notif={n} onMarkRead={markRead} />
+                ))}
               </div>
             </div>
           )}
@@ -248,7 +321,9 @@ export default function NotificationsPage() {
                 Earlier
               </p>
               <div className="flex flex-col gap-2">
-                {read.map((n) => <NotifRow key={n.id} notif={n} />)}
+                {read.map((n) => (
+                  <NotifRow key={n.notification_id} notif={n} onMarkRead={markRead} />
+                ))}
               </div>
             </div>
           )}

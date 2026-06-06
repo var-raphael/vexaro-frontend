@@ -6,15 +6,16 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { Menu } from "lucide-react";
+import { Menu, Zap, BookOpen, DollarSign, Info, Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VexaroWordmark } from "@/components/ui/vexaro-mark";
 
 const NAV_LINKS = [
-  { label: "How it works", href: "/#how" },
-  { label: "Features", href: "/#features" },
-  { label: "Pricing", href: "/#pricing" },
-  { label: "Docs", href: "/docs" },
+  { label: "How it works", href: "/#how", icon: Info },
+  { label: "Features", href: "/#features", icon: Zap },
+  { label: "Datasets", href: "/#datasets", icon: Database },
+  { label: "Pricing", href: "/#pricing", icon: DollarSign },
+  { label: "Docs", href: "/docs", icon: BookOpen },
 ];
 
 export function Navbar() {
@@ -30,7 +31,7 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
-    const ids = ["how", "features", "pricing"];
+    const ids = ["how", "features", "datasets", "pricing"];
     const observers: IntersectionObserver[] = [];
 
     ids.forEach((id) => {
@@ -48,6 +49,7 @@ export function Navbar() {
   }, [pathname]);
 
   function isActive(href: string) {
+    if (href === "/docs") return pathname === "/docs";
     const section = href.replace("/#", "");
     return activeSection === section;
   }
@@ -68,12 +70,13 @@ export function Navbar() {
       <div className="hidden md:flex items-center gap-1">
         {NAV_LINKS.map((l) => {
           const active = isActive(l.href);
+          const Icon = l.icon;
           return (
             <Link
               key={l.label}
               href={l.href}
               className={cn(
-                "relative px-3 py-1.5 text-sm rounded-md transition-all duration-200 group",
+                "relative px-3 py-1.5 text-sm rounded-md transition-all duration-200 group flex items-center gap-1.5",
                 active
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
@@ -90,26 +93,27 @@ export function Navbar() {
                 <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-px bg-primary rounded-full shadow-[0_0_6px_oklch(0.85_0.18_195_/_0.8)]" />
               )}
 
+              <Icon
+                size={13}
+                className={cn(
+                  "relative shrink-0 transition-colors duration-200",
+                  active ? "text-primary" : "text-muted-foreground/60 group-hover:text-foreground"
+                )}
+              />
               <span className="relative">{l.label}</span>
             </Link>
           );
         })}
       </div>
 
-      {/* Desktop actions */}
-      <div className="hidden md:flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-        >
-          Sign in
-        </Button>
+      {/* Desktop CTA */}
+      <div className="hidden md:flex items-center">
         <Button
           size="sm"
+          asChild
           className="text-xs bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_16px_oklch(0.85_0.18_195_/_0.3)] hover:shadow-[0_0_24px_oklch(0.85_0.18_195_/_0.5)] transition-all"
         >
-          Start Building
+          <Link href="/auth">Start Building</Link>
         </Button>
       </div>
 
@@ -140,13 +144,14 @@ export function Navbar() {
           <div className="flex flex-col gap-1 px-2">
             {NAV_LINKS.map((l) => {
               const active = isActive(l.href);
+              const Icon = l.icon;
               return (
                 <Link
                   key={l.label}
                   href={l.href}
                   onClick={() => setOpen(false)}
                   className={cn(
-                    "relative px-4 py-3 text-sm font-medium rounded-md transition-all border",
+                    "relative px-4 py-3 text-sm font-medium rounded-md transition-all border flex items-center gap-3",
                     active
                       ? "text-primary bg-primary/8 border-primary/20"
                       : "text-foreground hover:text-primary hover:bg-accent/20 border-transparent hover:border-border"
@@ -155,6 +160,13 @@ export function Navbar() {
                   {active && (
                     <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-full shadow-[0_0_8px_oklch(0.85_0.18_195_/_0.8)]" />
                   )}
+                  <Icon
+                    size={15}
+                    className={cn(
+                      "shrink-0 transition-colors",
+                      active ? "text-primary" : "text-muted-foreground"
+                    )}
+                  />
                   {l.label}
                 </Link>
               );
@@ -162,15 +174,12 @@ export function Navbar() {
           </div>
 
           {/* Mobile CTA */}
-          <div className="mt-auto flex flex-col gap-3 px-2 pb-6">
+          <div className="mt-auto px-2 pb-6">
             <Button
-              variant="outline"
-              className="w-full border-border text-foreground hover:border-primary hover:text-primary transition-all"
+              asChild
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_16px_oklch(0.85_0.18_195_/_0.3)]"
             >
-              Sign in
-            </Button>
-            <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_16px_oklch(0.85_0.18_195_/_0.3)]">
-              Start Building
+              <Link href="/auth">Start Building</Link>
             </Button>
           </div>
         </SheetContent>

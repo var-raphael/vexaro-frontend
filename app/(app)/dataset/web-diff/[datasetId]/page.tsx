@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,9 +12,8 @@ import {
 import {
   ArrowLeft, GitBranch, ChevronDown, Loader2,
   AlertCircle, Plus, Minus, RefreshCw,
-  Table2, Braces, Calendar, ChevronRight,
-  ChevronLeft, ChevronsLeft, ChevronsRight,
-  Database, ChevronUp,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+  ChevronUp, Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,12 +23,10 @@ interface DatasetVersion {
   version_number: number;
   created_at: string;
   is_active: boolean;
-  file_path: string;
 }
 
 type ChangeType = "added" | "subtracted" | "modified";
 type Filter = "all" | ChangeType;
-type ViewMode = "tabular" | "json";
 
 interface FieldDiff {
   field: string;
@@ -53,22 +49,8 @@ interface DiffResult {
   modified: number;
   total_v1: number;
   total_v2: number;
-  records: DiffRecord[];
+  records: DiffRecord[] | null;
 }
-
-// ── Config ────────────────────────────────────────────────────────────────────
-
-const CHANGE_CONFIG: Record<ChangeType, {
-  label: string;
-  color: string;
-  bg: string;
-  border: string;
-  icon: React.ElementType;
-}> = {
-  added:      { label: "Added",      color: "text-emerald-400", bg: "bg-emerald-500/5",  border: "border-emerald-500/20", icon: Plus },
-  subtracted: { label: "Subtracted", color: "text-red-400",     bg: "bg-red-500/5",      border: "border-red-500/20",     icon: Minus },
-  modified:   { label: "Modified",   color: "text-yellow-400",  bg: "bg-yellow-500/5",   border: "border-yellow-500/20",  icon: RefreshCw },
-};
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
@@ -87,13 +69,11 @@ function renderValue(val: unknown): string {
   if (typeof val === "string") return val || "—";
   if (typeof val === "number" || typeof val === "boolean") return String(val);
   if (Array.isArray(val)) {
-    return val
-      .map((item) =>
-        typeof item === "object" && item !== null
-          ? Object.values(item as Record<string, unknown>).join(" · ")
-          : String(item)
-      )
-      .join(", ");
+    return val.map((item) =>
+      typeof item === "object" && item !== null
+        ? Object.values(item as Record<string, unknown>).join(" · ")
+        : String(item)
+    ).join(", ");
   }
   if (typeof val === "object") {
     return Object.entries(val as Record<string, unknown>)
@@ -112,69 +92,117 @@ function shortSource(source: string): string {
   }
 }
 
-// ── JSON Syntax Highlighter ───────────────────────────────────────────────────
-// Tokenizes JSON into colored spans without any external dependency.
+// ── Diff Record Row ───────────────────────────────────────────────────────────
 
-function highlight(json: string): React.ReactNode[] {
-  const tokens: { text: string; cls: string }[] = [];
-  const re = /("(?:\\.|[^"\\])*"(?:\s*:)?)|(\b(?:true|false|null)\b)|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|([{}[\],])/g;
-  let last = 0;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(json)) !== null) {
-    if (m.index > last) tokens.push({ text: json.slice(last, m.index), cls: "text-muted-foreground/40" });
-    const raw = m[0];
-    if (m[1]) {
-      // string — key vs value
-      if (raw.endsWith(":")) {
-        tokens.push({ text: raw.slice(0, -1), cls: "text-sky-400/80" });
-        tokens.push({ text: ":", cls: "text-muted-foreground/40" });
-      } else {
-        tokens.push({ text: raw, cls: "text-amber-300/80" });
-      }
-    } else if (m[2]) {
-      tokens.push({ text: raw, cls: raw === "null" ? "text-muted-foreground/40" : "text-purple-400/80" });
-    } else if (m[3]) {
-      tokens.push({ text: raw, cls: "text-emerald-400/80" });
-    } else {
-      tokens.push({ text: raw, cls: "text-muted-foreground/50" });
-    }
-    last = m.index + raw.length;
-  }
-  if (last < json.length) tokens.push({ text: json.slice(last), cls: "text-muted-foreground/40" });
-  return tokens.map((t, i) => <span key={i} className={t.cls}>{t.text}</span>);
-}
+function DiffRow({ record, vA, vB }: { record: DiffRecord; vA: number; vB: number }) {
+  const [open, setOpen] = useState(false);
 
-function JsonHighlight({ value, className }: { value: unknown; className?: string }) {
-  const json = JSON.stringify(value, null, 2);
+  const isAdded      = record.change_type === "added";
+  const isSubtracted = record.change_type === "subtracted";
+  const isModified   = record.change_type === "modified";
+
+  const borderColor = isAdded ? "border-l-emerald-500" : isSubtracted ? "border-l-red-500" : "border-l-yellow-500";
+  const labelColor  = isAdded ? "text-emerald-400" : isSubtracted ? "text-red-400" : "text-yellow-400";
+  const labelBg     = isAdded ? "bg-emerald-500/10" : isSubtracted ? "bg-red-500/10" : "bg-yellow-500/10";
+  const Icon        = isAdded ? Plus : isSubtracted ? Minus : RefreshCw;
+  const label       = isAdded ? "Added" : isSubtracted ? "Removed" : "Modified";
+
+  const entity = record.v2 ?? record.v1 ?? {};
+  const fields = isModified
+    ? (record.field_diffs ?? [])
+    : Object.keys(entity).filter((k) => k !== "_source").map((k) => ({
+        field: k,
+        v1: record.v1?.[k],
+        v2: record.v2?.[k],
+      }));
+
   return (
-    <pre className={cn(
-      "text-[11px] leading-relaxed font-mono overflow-x-auto rounded-md p-3",
-      "bg-[#0d1117] border border-border/40",
-      className
-    )}>
-      {highlight(json)}
-    </pre>
+    <div className={cn("border border-border/40 border-l-2 rounded-md overflow-hidden bg-card", borderColor)}>
+      {/* Row header */}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-accent/20 transition-colors text-left"
+      >
+        {/* Badge */}
+        <span className={cn("flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded shrink-0", labelColor, labelBg)}>
+          <Icon size={9} /> {label}
+        </span>
+
+        {/* Source */}
+        <span className="text-xs text-muted-foreground font-mono truncate flex-1" title={record.source}>
+          {shortSource(record.source)}
+        </span>
+
+        {/* Modified field pills — shown inline when collapsed */}
+        {isModified && !open && (record.field_diffs ?? []).length > 0 && (
+          <div className="hidden sm:flex gap-1 shrink-0">
+            {(record.field_diffs ?? []).slice(0, 3).map((fd) => (
+              <span key={fd.field} className="text-[9px] bg-yellow-500/10 border border-yellow-500/20 text-yellow-400/70 px-1.5 py-0.5 rounded font-mono">
+                {fd.field}
+              </span>
+            ))}
+            {(record.field_diffs ?? []).length > 3 && (
+              <span className="text-[9px] text-muted-foreground/40">+{(record.field_diffs ?? []).length - 3}</span>
+            )}
+          </div>
+        )}
+
+        {open
+          ? <ChevronUp size={12} className="text-muted-foreground/40 shrink-0" />
+          : <ChevronDown size={12} className="text-muted-foreground/40 shrink-0" />
+        }
+      </button>
+
+      {/* Expanded diff lines */}
+      {open && (
+        <div className="border-t border-border/30 divide-y divide-border/20">
+          {isModified ? (
+            // Modified: show only changed fields as old → new
+            (record.field_diffs ?? []).map((fd) => (
+              <div key={fd.field} className="flex items-baseline gap-3 px-4 py-2 text-xs font-mono">
+                <span className="text-muted-foreground/50 w-28 shrink-0">{fd.field}</span>
+                <span className="text-red-400/80 line-through decoration-red-500/30 truncate max-w-[180px]" title={renderValue(fd.v1)}>
+                  {renderValue(fd.v1)}
+                </span>
+                <span className="text-muted-foreground/30 shrink-0">→</span>
+                <span className="text-emerald-400/90 truncate max-w-[180px]" title={renderValue(fd.v2)}>
+                  {renderValue(fd.v2)}
+                </span>
+              </div>
+            ))
+          ) : (
+            // Added / Subtracted: show all fields
+            (fields as { field: string; v1: unknown; v2: unknown }[]).map(({ field, v1, v2 }) => (
+              <div key={field} className="flex items-baseline gap-3 px-4 py-2 text-xs font-mono">
+                <span className="text-muted-foreground/50 w-28 shrink-0">{field}</span>
+                <span className={cn(
+                  "truncate max-w-[300px]",
+                  isAdded ? "text-emerald-400/90" : "text-red-400/80"
+                )} title={renderValue(isAdded ? v2 : v1)}>
+                  {renderValue(isAdded ? v2 : v1)}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
-// ── Pagination Controls ───────────────────────────────────────────────────────
+// ── Pagination ────────────────────────────────────────────────────────────────
 
 function Pagination({
-  page, totalPages, pageSize, total,
-  onPage, onPageSize,
+  page, totalPages, pageSize, total, onPage, onPageSize,
 }: {
-  page: number;
-  totalPages: number;
-  pageSize: number;
-  total: number;
-  onPage: (p: number) => void;
-  onPageSize: (s: number) => void;
+  page: number; totalPages: number; pageSize: number; total: number;
+  onPage: (p: number) => void; onPageSize: (s: number) => void;
 }) {
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const to = Math.min(page * pageSize, total);
+  const to   = Math.min(page * pageSize, total);
 
   return (
-    <div className="flex items-center justify-between flex-wrap gap-3 py-3 px-1">
+    <div className="flex items-center justify-between flex-wrap gap-3 py-2">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <span>Show</span>
         <DropdownMenu>
@@ -199,22 +227,12 @@ function Pagination({
       </div>
 
       <div className="flex items-center gap-1">
-        <button
-          onClick={() => onPage(1)}
-          disabled={page === 1}
-          className="p-1.5 rounded text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-        >
+        <button onClick={() => onPage(1)} disabled={page === 1} className="p-1.5 rounded text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:cursor-not-allowed transition-colors">
           <ChevronsLeft size={13} />
         </button>
-        <button
-          onClick={() => onPage(page - 1)}
-          disabled={page === 1}
-          className="p-1.5 rounded text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-        >
+        <button onClick={() => onPage(page - 1)} disabled={page === 1} className="p-1.5 rounded text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:cursor-not-allowed transition-colors">
           <ChevronLeft size={13} />
         </button>
-
-        {/* page numbers */}
         {Array.from({ length: totalPages }, (_, i) => i + 1)
           .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
           .reduce<(number | "…")[]>((acc, p, i, arr) => {
@@ -224,449 +242,27 @@ function Pagination({
           }, [])
           .map((p, i) =>
             p === "…" ? (
-              <span key={`ellipsis-${i}`} className="px-1 text-xs text-muted-foreground/40">…</span>
+              <span key={`e-${i}`} className="px-1 text-xs text-muted-foreground/40">…</span>
             ) : (
               <button
                 key={p}
                 onClick={() => onPage(p as number)}
                 className={cn(
                   "w-7 h-7 rounded text-xs transition-colors",
-                  p === page
-                    ? "bg-primary text-primary-foreground font-medium"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  p === page ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-accent"
                 )}
               >
                 {p}
               </button>
             )
           )}
-
-        <button
-          onClick={() => onPage(page + 1)}
-          disabled={page === totalPages}
-          className="p-1.5 rounded text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-        >
+        <button onClick={() => onPage(page + 1)} disabled={page === totalPages} className="p-1.5 rounded text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:cursor-not-allowed transition-colors">
           <ChevronRight size={13} />
         </button>
-        <button
-          onClick={() => onPage(totalPages)}
-          disabled={page === totalPages}
-          className="p-1.5 rounded text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-        >
+        <button onClick={() => onPage(totalPages)} disabled={page === totalPages} className="p-1.5 rounded text-muted-foreground hover:text-foreground disabled:opacity-25 disabled:cursor-not-allowed transition-colors">
           <ChevronsRight size={13} />
         </button>
       </div>
-    </div>
-  );
-}
-
-// ── Collapsible Tabular Record ─────────────────────────────────────────────────
-
-function TabularRecord({ record, vA, vB }: { record: DiffRecord; vA: number; vB: number }) {
-  const [open, setOpen] = useState(true);
-  const cfg = CHANGE_CONFIG[record.change_type];
-  const Icon = cfg.icon;
-  const entity = record.v2 ?? record.v1 ?? {};
-
-  const rows: { field: string; v1: unknown; v2: unknown }[] = [];
-  if (record.change_type === "modified") {
-    for (const fd of record.field_diffs ?? []) {
-      rows.push({ field: fd.field, v1: fd.v1, v2: fd.v2 });
-    }
-  } else {
-    const fields = Object.keys(entity).filter((k) => k !== "_source");
-    for (const f of fields) {
-      rows.push({
-        field: f,
-        v1: record.change_type === "added" ? undefined : entity[f],
-        v2: record.change_type === "subtracted" ? undefined : entity[f],
-      });
-    }
-  }
-
-  if (rows.length === 0) return null;
-
-  return (
-    <div className={cn("rounded-md border overflow-hidden", cfg.border)}>
-      {/* header — clickable to collapse */}
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className={cn(
-          "w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors",
-          cfg.bg,
-          open ? cn("border-b", cfg.border) : ""
-        )}
-      >
-        <span className={cn("flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest shrink-0", cfg.color)}>
-          <Icon size={10} /> {cfg.label}
-        </span>
-        <span className="text-[11px] text-muted-foreground font-mono truncate" title={record.source}>
-          {shortSource(record.source)}
-        </span>
-        {record.field_diffs && record.field_diffs.length > 0 && (
-          <div className="hidden sm:flex gap-1 flex-wrap ml-1">
-            {record.field_diffs.map((fd) => (
-              <span key={fd.field} className="text-[9px] bg-yellow-500/10 border border-yellow-500/20 text-yellow-400/80 px-1.5 py-0.5 rounded font-mono">
-                {fd.field}
-              </span>
-            ))}
-          </div>
-        )}
-        <span className="text-[10px] text-muted-foreground/30 font-mono ml-auto shrink-0">{record.id}</span>
-        {open ? <ChevronUp size={12} className="text-muted-foreground/40 shrink-0" /> : <ChevronDown size={12} className="text-muted-foreground/40 shrink-0" />}
-      </button>
-
-      {open && (
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-border/40">
-              <th className="text-left px-3 py-1.5 text-[10px] font-medium text-muted-foreground/40 uppercase tracking-wider w-32">Field</th>
-              <th className="text-left px-3 py-1.5 text-[10px] font-medium text-muted-foreground/40 uppercase tracking-wider w-1/2">
-                v{vA} <span className="opacity-50 normal-case font-normal">(old)</span>
-              </th>
-              <th className="text-left px-3 py-1.5 text-[10px] font-medium text-muted-foreground/40 uppercase tracking-wider w-1/2">
-                v{vB} <span className="opacity-50 normal-case font-normal">(new)</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(({ field, v1, v2 }, idx) => (
-              <tr key={field} className={cn("border-b border-border/20 last:border-0", idx % 2 === 1 && "bg-accent/10")}>
-                <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground/60 align-top">{field}</td>
-                <td className="px-3 py-2 align-top max-w-[260px]">
-                  {record.change_type === "added" ? (
-                    <span className="text-muted-foreground/20 italic text-[11px]">—</span>
-                  ) : (
-                    <span className={cn(
-                      "block break-words text-[12px] leading-relaxed",
-                      record.change_type === "subtracted" ? "text-red-300/80" : "text-red-300/80 line-through decoration-red-400/40"
-                    )}>
-                      {renderValue(v1)}
-                    </span>
-                  )}
-                </td>
-                <td className="px-3 py-2 align-top max-w-[260px]">
-                  {record.change_type === "subtracted" ? (
-                    <span className="text-muted-foreground/20 italic text-[11px]">—</span>
-                  ) : (
-                    <span className="block break-words text-[12px] leading-relaxed text-emerald-300/90">
-                      {renderValue(v2)}
-                    </span>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-}
-
-// ── Collapsible JSON Record ────────────────────────────────────────────────────
-
-function JsonRecord({ record, vA, vB }: { record: DiffRecord; vA: number; vB: number }) {
-  const [open, setOpen] = useState(true);
-  const cfg = CHANGE_CONFIG[record.change_type];
-  const Icon = cfg.icon;
-  const changedSet = new Set((record.field_diffs ?? []).map((f) => f.field));
-  const isAdded      = record.change_type === "added";
-  const isSubtracted = record.change_type === "subtracted";
-
-  function renderPanel(obj: Record<string, unknown> | null, side: "v1" | "v2", empty: boolean) {
-    if (empty || !obj) {
-      return (
-        <div className="flex items-center justify-center h-full min-h-[60px] text-muted-foreground/20 text-xs italic p-4">
-          not present
-        </div>
-      );
-    }
-    const keys = Object.keys(obj).filter((k) => k !== "_source");
-    const displayKeys = record.change_type === "modified" ? keys.filter((k) => changedSet.has(k)) : keys;
-    return (
-      <div className="font-mono text-[11px] leading-relaxed p-3 space-y-0.5 overflow-x-auto">
-        {displayKeys.map((key) => {
-          const val = obj[key];
-          const isChanged = changedSet.has(key);
-          return (
-            <div
-              key={key}
-              className={cn(
-                "flex gap-1.5 rounded-sm px-1 -mx-1",
-                isChanged && side === "v1" && "bg-red-500/10",
-                isChanged && side === "v2" && "bg-emerald-500/10",
-              )}
-            >
-              <span className="text-sky-400/70 shrink-0">&quot;{key}&quot;:</span>
-              <span className={cn(
-                "break-all",
-                !isChanged      ? "text-muted-foreground/50"
-                : side === "v1" ? "text-red-300/90"
-                :                 "text-emerald-300/90"
-              )}>
-                {JSON.stringify(val)}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
-  return (
-    <div className={cn("rounded-md border overflow-hidden", cfg.border)}>
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className={cn(
-          "w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors",
-          cfg.bg,
-          open ? cn("border-b", cfg.border) : ""
-        )}
-      >
-        <span className={cn("flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest shrink-0", cfg.color)}>
-          <Icon size={10} /> {cfg.label}
-        </span>
-        <span className="text-[11px] text-muted-foreground font-mono truncate" title={record.source}>
-          {shortSource(record.source)}
-        </span>
-        {record.field_diffs && record.field_diffs.length > 0 && (
-          <div className="hidden sm:flex gap-1 flex-wrap ml-1">
-            {record.field_diffs.map((fd) => (
-              <span key={fd.field} className="text-[9px] bg-yellow-500/10 border border-yellow-500/20 text-yellow-400/80 px-1.5 py-0.5 rounded font-mono">
-                {fd.field}
-              </span>
-            ))}
-          </div>
-        )}
-        <span className="text-[10px] text-muted-foreground/30 font-mono ml-auto shrink-0">{record.id}</span>
-        {open ? <ChevronUp size={12} className="text-muted-foreground/40 shrink-0" /> : <ChevronDown size={12} className="text-muted-foreground/40 shrink-0" />}
-      </button>
-
-      {open && (
-        <div className="grid grid-cols-2 divide-x divide-border/40">
-          <div className={cn(isAdded && "opacity-25 bg-accent/20")}>
-            <div className="px-3 py-1.5 border-b border-border/30 bg-accent/10">
-              <span className="text-[10px] text-muted-foreground/40 uppercase tracking-wider font-medium">
-                v{vA} <span className="normal-case font-normal">(old)</span>
-              </span>
-            </div>
-            {renderPanel(record.v1, "v1", isAdded)}
-          </div>
-          <div className={cn(isSubtracted && "opacity-25 bg-accent/20")}>
-            <div className="px-3 py-1.5 border-b border-border/30 bg-accent/10">
-              <span className="text-[10px] text-muted-foreground/40 uppercase tracking-wider font-medium">
-                v{vB} <span className="normal-case font-normal">(new)</span>
-              </span>
-            </div>
-            {renderPanel(record.v2, "v2", isSubtracted)}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Dataset Full Viewer ───────────────────────────────────────────────────────
-
-interface EntityViewerProps {
-  versions: DatasetVersion[];
-  activeVersion: number;
-  datasetId: string;
-}
-
-function DatasetViewer({ versions, activeVersion, datasetId }: EntityViewerProps) {
-  const [selectedVersion, setSelectedVersion] = useState(activeVersion);
-  const [entities, setEntities] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("tabular");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-
-  // derive columns from entities
-  const columns = useMemo(() => {
-    const cols = new Set<string>();
-    entities.slice(0, 50).forEach((e) => Object.keys(e).forEach((k) => k !== "_source" && cols.add(k)));
-    return Array.from(cols);
-  }, [entities]);
-
-  const totalPages = Math.max(1, Math.ceil(entities.length / pageSize));
-  const pageEntities = entities.slice((page - 1) * pageSize, page * pageSize);
-
-  // fetch result file for selected version via API
-  useEffect(() => {
-    const ver = versions.find((v) => v.version_number === selectedVersion);
-    if (!ver) return;
-    setLoading(true);
-    setPage(1);
-    // We fetch via a dedicated endpoint — adjust path to match your backend
-    fetch(`${API}/dataset/result?dataset_id=${datasetId}&version_id=${ver.version_number}`)
-      .then((r) => r.json())
-      .then((data) => {
-        // backend returns { entities: [...] }
-        const arr = Array.isArray(data) ? data : (data.entities ?? []);
-        setEntities(arr);
-      })
-      .catch(() => setEntities([]))
-      .finally(() => setLoading(false));
-  }, [selectedVersion, versions]);
-
-  return (
-    <div className="space-y-4">
-      {/* header row */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-2">
-          <Database size={14} className="text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground">Dataset Result</span>
-          <span className="text-xs text-muted-foreground">({entities.length} entities)</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* version selector */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="text-xs border-border gap-1.5 h-8">
-                <GitBranch size={11} />
-                v{selectedVersion}
-                <ChevronDown size={10} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-card border-border">
-              {versions.map((v) => (
-                <DropdownMenuItem
-                  key={v.version_number}
-                  onClick={() => setSelectedVersion(v.version_number)}
-                  className={cn(
-                    "text-xs cursor-pointer gap-2",
-                    v.version_number === selectedVersion ? "text-primary" : "text-muted-foreground"
-                  )}
-                >
-                  <GitBranch size={11} />
-                  v{v.version_number}
-                  {v.is_active && <span className="ml-auto text-emerald-400">active</span>}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* view toggle */}
-          <div className="flex items-center gap-1 bg-accent border border-border rounded-md p-1">
-            <button
-              onClick={() => setViewMode("tabular")}
-              className={cn(
-                "flex items-center gap-1.5 px-2.5 py-1 text-xs rounded transition-colors",
-                viewMode === "tabular"
-                  ? "bg-background border border-border text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Table2 size={11} /> Table
-            </button>
-            <button
-              onClick={() => setViewMode("json")}
-              className={cn(
-                "flex items-center gap-1.5 px-2.5 py-1 text-xs rounded transition-colors",
-                viewMode === "json"
-                  ? "bg-background border border-border text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Braces size={11} /> JSON
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 size={18} className="animate-spin text-muted-foreground" />
-        </div>
-      ) : entities.length === 0 ? (
-        <div className="flex items-center justify-center py-16 text-xs text-muted-foreground">
-          No entities found for this version.
-        </div>
-      ) : viewMode === "tabular" ? (
-        <>
-          <div className="rounded-md border border-border overflow-x-auto">
-            <table className="w-full text-xs min-w-max">
-              <thead>
-                <tr className="bg-accent/40 border-b border-border">
-                  <th className="text-left px-3 py-2.5 font-medium text-muted-foreground/60 text-[10px] uppercase tracking-wider w-8">#</th>
-                  {columns.map((col) => (
-                    <th key={col} className="text-left px-3 py-2.5 font-medium text-muted-foreground/60 text-[10px] uppercase tracking-wider font-mono">
-                      {col}
-                    </th>
-                  ))}
-                  <th className="text-left px-3 py-2.5 font-medium text-muted-foreground/60 text-[10px] uppercase tracking-wider">Source</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pageEntities.map((entity, idx) => (
-                  <tr
-                    key={idx}
-                    className={cn(
-                      "border-b border-border/30 last:border-0 hover:bg-accent/20 transition-colors",
-                      idx % 2 === 1 && "bg-accent/10"
-                    )}
-                  >
-                    <td className="px-3 py-2 text-muted-foreground/30 text-[11px]">
-                      {(page - 1) * pageSize + idx + 1}
-                    </td>
-                    {columns.map((col) => (
-                      <td key={col} className="px-3 py-2 max-w-[220px] align-top">
-                        <span className="block truncate text-[12px] text-foreground/80" title={renderValue(entity[col])}>
-                          {renderValue(entity[col])}
-                        </span>
-                      </td>
-                    ))}
-                    <td className="px-3 py-2 max-w-[180px] align-top">
-                      <span
-                        className="block truncate text-[11px] text-muted-foreground/50 font-mono"
-                        title={entity["_source"] as string}
-                      >
-                        {shortSource(entity["_source"] as string ?? "")}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            pageSize={pageSize}
-            total={entities.length}
-            onPage={setPage}
-            onPageSize={(s) => { setPageSize(s); setPage(1); }}
-          />
-        </>
-      ) : (
-        <>
-          <div className="space-y-2">
-            {pageEntities.map((entity, idx) => (
-              <div key={idx} className="rounded-md border border-border/40 overflow-hidden">
-                <div className="px-3 py-1.5 bg-accent/20 border-b border-border/30 flex items-center gap-2">
-                  <span className="text-[10px] text-muted-foreground/40 font-mono">
-                    #{(page - 1) * pageSize + idx + 1}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground/40 font-mono truncate">
-                    {shortSource(entity["_source"] as string ?? "")}
-                  </span>
-                </div>
-                <JsonHighlight value={entity} />
-              </div>
-            ))}
-          </div>
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            pageSize={pageSize}
-            total={entities.length}
-            onPage={setPage}
-            onPageSize={(s) => { setPageSize(s); setPage(1); }}
-          />
-        </>
-      )}
     </div>
   );
 }
@@ -676,21 +272,18 @@ function DatasetViewer({ versions, activeVersion, datasetId }: EntityViewerProps
 function VersionPicker({
   label, versions, selected, onChange, disabledVersion,
 }: {
-  label: string;
-  versions: DatasetVersion[];
-  selected: number;
-  onChange: (v: number) => void;
-  disabledVersion?: number;
+  label: string; versions: DatasetVersion[]; selected: number;
+  onChange: (v: number) => void; disabledVersion?: number;
 }) {
   const current = versions.find((v) => v.version_number === selected);
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{label}</span>
+      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">{label}</span>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="text-xs border-border gap-2 h-9 w-40 justify-between">
+          <Button variant="outline" size="sm" className="text-xs border-border gap-2 h-9 w-36 justify-between">
             <div className="flex items-center gap-1.5">
-              <GitBranch size={12} />
+              <GitBranch size={11} />
               <span>v{selected}</span>
               {current?.is_active && <span className="text-emerald-400 text-[10px]">active</span>}
             </div>
@@ -709,8 +302,7 @@ function VersionPicker({
                 v.version_number === disabledVersion && "opacity-30 cursor-not-allowed"
               )}
             >
-              <GitBranch size={11} />
-              v{v.version_number}
+              <GitBranch size={11} /> v{v.version_number}
               {v.is_active && <span className="ml-auto text-emerald-400">active</span>}
             </DropdownMenuItem>
           ))}
@@ -718,8 +310,7 @@ function VersionPicker({
       </DropdownMenu>
       {current && (
         <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-          <Calendar size={10} />
-          {formatDate(current.created_at)}
+          <Calendar size={10} /> {formatDate(current.created_at)}
         </span>
       )}
     </div>
@@ -729,10 +320,11 @@ function VersionPicker({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DiffPage() {
-  const params  = useParams();
-  const router  = useRouter();
+  const params    = useParams();
+  const router    = useRouter();
   const datasetId = params?.datasetId as string;
 
+  const [datasetName, setDatasetName]   = useState<string>("");
   const [versions, setVersions]         = useState<DatasetVersion[]>([]);
   const [vA, setVA]                     = useState<number>(1);
   const [vB, setVB]                     = useState<number>(2);
@@ -740,7 +332,6 @@ export default function DiffPage() {
   const [loading, setLoading]           = useState(true);
   const [diffLoading, setDiffLoading]   = useState(false);
   const [error, setError]               = useState<string | null>(null);
-  const [viewMode, setViewMode]         = useState<ViewMode>("tabular");
   const [filter, setFilter]             = useState<Filter>("all");
   const [page, setPage]                 = useState(1);
   const [pageSize, setPageSize]         = useState(25);
@@ -751,30 +342,28 @@ export default function DiffPage() {
       const res = await fetch(`${API}/dataset/view?dataset_id=${datasetId}`);
       if (!res.ok) throw new Error(`status ${res.status}`);
       const data = await res.json();
+
+      // alias takes priority over data_name
+      setDatasetName(data.name ?? `Dataset ${datasetId}`);
+
       const vers: DatasetVersion[] = (data.versions ?? []).map((v: {
-  version_number: number; created_at: string; is_active: boolean; file_path: string;
-}) => ({
-  version_number: v.version_number,
-  created_at: v.created_at,
-  is_active: v.is_active,
-  file_path: v.file_path,
-}));
+        version_number: number; created_at: string; is_active: boolean;
+      }) => ({
+        version_number: v.version_number,
+        created_at: v.created_at,
+        is_active: v.is_active,
+      }));
 
-const activeNum = data.active_version ?? vers[vers.length - 1]?.version_number ?? 1;
+      const activeNum = data.active_version ?? vers[vers.length - 1]?.version_number ?? 1;
+      const versWithActive = vers.map((v) => ({ ...v, is_active: v.version_number === activeNum }));
+      setVersions(versWithActive);
 
-const versWithActive = vers.map((v) => ({
-  ...v,
-  is_active: v.version_number === activeNum,
-}));
-
-setVersions(versWithActive);
-
-if (vers.length >= 2) {
-  const activeIdx = vers.findIndex((v) => v.version_number === activeNum);
-  const prevNum = activeIdx > 0 ? vers[activeIdx - 1].version_number : vers[0].version_number;
-  setVA(prevNum);
-  setVB(activeNum);
-}
+      if (vers.length >= 2) {
+        const activeIdx = vers.findIndex((v) => v.version_number === activeNum);
+        const prevNum   = activeIdx > 0 ? vers[activeIdx - 1].version_number : vers[0].version_number;
+        setVA(prevNum);
+        setVB(activeNum);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load versions");
     } finally {
@@ -801,27 +390,18 @@ if (vers.length >= 2) {
 
   useEffect(() => { fetchVersions(); }, [fetchVersions]);
   useEffect(() => { if (!loading) fetchDiff(); }, [vA, vB, loading, fetchDiff]);
+  useEffect(() => { setPage(1); }, [filter]);
 
   // ── derived ────────────────────────────────────────────────────────────────
   const filteredRecords = useMemo(() =>
-    diff
-      ? filter === "all" ? diff.records : diff.records.filter((r) => r.change_type === filter)
-      : [],
-    [diff, filter]
-  );
+  diff?.records
+    ? filter === "all" ? diff.records : diff.records.filter((r) => r.change_type === filter)
+    : [],
+  [diff, filter]
+);
 
-  const totalPages   = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
-  const pageRecords  = filteredRecords.slice((page - 1) * pageSize, page * pageSize);
-
-  const FILTERS: { value: Filter; label: string; count: () => number }[] = [
-    { value: "all",        label: "All",        count: () => diff?.records.length ?? 0 },
-    { value: "added",      label: "Added",      count: () => diff?.added ?? 0 },
-    { value: "subtracted", label: "Subtracted", count: () => diff?.subtracted ?? 0 },
-    { value: "modified",   label: "Modified",   count: () => diff?.modified ?? 0 },
-  ];
-
-  // reset to page 1 when filter changes
-  useEffect(() => { setPage(1); }, [filter]);
+  const totalPages  = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
+  const pageRecords = filteredRecords.slice((page - 1) * pageSize, page * pageSize);
 
   // ── loading / error ────────────────────────────────────────────────────────
   if (loading) {
@@ -853,194 +433,101 @@ if (vers.length >= 2) {
   }
 
   // ── insight ────────────────────────────────────────────────────────────────
-  const InsightCard = () => {
-    if (!diff) return null;
-    const delta    = diff.total_v2 - diff.total_v1;
-    const pct      = diff.total_v1 > 0 ? Math.abs(Math.round((delta / diff.total_v1) * 100)) : 0;
-    const dominant =
-      diff.added >= diff.subtracted && diff.added >= diff.modified ? "additions"
+  const delta     = diff ? diff.total_v2 - diff.total_v1 : 0;
+  const pct       = diff && diff.total_v1 > 0 ? Math.abs(Math.round((delta / diff.total_v1) * 100)) : 0;
+  const affected  = diff && diff.total_v1 > 0
+    ? Math.round(((diff.added + diff.subtracted + diff.modified) / diff.total_v1) * 100)
+    : 0;
+  const dominant  = diff
+    ? diff.added >= diff.subtracted && diff.added >= diff.modified ? "additions"
       : diff.subtracted >= diff.modified ? "subtractions"
-      : "modifications";
-    const affected = diff.total_v1 > 0
-      ? Math.round(((diff.added + diff.subtracted + diff.modified) / diff.total_v1) * 100)
-      : 0;
-    const summary  = delta === 0
-      ? `v${vB} has the same entity count as v${vA}. ${diff.modified} record${diff.modified !== 1 ? "s" : ""} were modified.`
-      : `v${vB} is ${pct}% ${delta > 0 ? "larger" : "smaller"} than v${vA}, driven by ${dominant}. ${affected}% of v${vA}'s records were affected.`;
+      : "modifications"
+    : "—";
 
-    return (
-      <Card className="bg-card border-border">
-        <CardContent className="p-5">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2">Insight</p>
-          <p className="text-sm text-foreground leading-relaxed mb-4">{summary}</p>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div>
-              <p className={cn("text-lg font-bold", delta >= 0 ? "text-emerald-400" : "text-red-400")}>
-                {delta >= 0 ? "+" : ""}{pct}%
-              </p>
-              <p className="text-[11px] text-muted-foreground">entity delta</p>
-            </div>
-            <div>
-              <p className="text-lg font-bold text-foreground">{affected}%</p>
-              <p className="text-[11px] text-muted-foreground">records affected</p>
-            </div>
-            <div>
-              <p className="text-lg font-bold text-foreground capitalize">{dominant}</p>
-              <p className="text-[11px] text-muted-foreground">top change</p>
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground mt-3">
-            v{vA} <span className="text-foreground font-medium">{diff.total_v1}</span> entities
-            {" → "}
-            v{vB} <span className="text-foreground font-medium">{diff.total_v2}</span> entities
-            {" · "}
-            <span className={delta >= 0 ? "text-emerald-400" : "text-red-400"}>
-              {delta >= 0 ? "+" : ""}{delta}
-            </span>
-          </p>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  // ── active version number ──────────────────────────────────────────────────
-  const activeVersionNumber = versions.find((v) => v.is_active)?.version_number ?? versions[versions.length - 1]?.version_number ?? 1;
+  const FILTERS: { value: Filter; label: string; count: number }[] = [
+  { value: "all",        label: "All",      count: diff?.records?.length ?? 0 },
+  { value: "added",      label: "Added",    count: diff?.added ?? 0 },
+  { value: "subtracted", label: "Removed",  count: diff?.subtracted ?? 0 },
+  { value: "modified",   label: "Modified", count: diff?.modified ?? 0 },
+];
 
   // ── render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-5xl mx-auto px-5 md:px-8 py-10 space-y-6">
+    <div className="max-w-4xl mx-auto px-5 md:px-8 py-10 space-y-6">
 
-      {/* back */}
+      {/* Back */}
       <button
         onClick={() => router.back()}
         className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
       >
-        <ArrowLeft size={13} /> Back to Dataset
+        <ArrowLeft size={13} /> Back
       </button>
 
-      {/* title */}
+      {/* Title */}
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground font-mono mb-1">
-          Version Diff
-        </h1>
+        <div className="flex items-center gap-2.5 flex-wrap mb-1">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground font-mono">
+            {datasetName || `Dataset ${datasetId}`}
+          </h1>
+          <span className="text-xs px-2 py-0.5 rounded-full border border-border text-muted-foreground bg-accent font-mono">
+            version diff
+          </span>
+        </div>
         <p className="text-sm text-muted-foreground">Compare two versions and inspect what changed.</p>
       </div>
 
-      {/* version picker */}
-      <Card className="bg-card border-border">
-        <CardContent className="p-5">
-          <div className="flex items-end gap-6 flex-wrap">
-            <VersionPicker label="Base (from)" versions={versions} selected={vA} onChange={setVA} disabledVersion={vB} />
-            <div className="flex items-center pb-1 text-muted-foreground/30 text-xl select-none">→</div>
-            <VersionPicker label="Compare (to)" versions={versions} selected={vB} onChange={setVB} disabledVersion={vA} />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Version picker */}
+      <div className="flex items-end gap-6 flex-wrap p-4 rounded-md border border-border bg-card">
+        <VersionPicker label="Base (from)" versions={versions} selected={vA} onChange={setVA} disabledVersion={vB} />
+        <div className="flex items-center pb-3 text-muted-foreground/30 text-lg select-none">→</div>
+        <VersionPicker label="Compare (to)" versions={versions} selected={vB} onChange={setVB} disabledVersion={vA} />
+      </div>
 
-      {/* stat cards */}
+      {/* Insight card — anchored, not floating */}
       {diff && !diffLoading && (
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: "Added",      count: diff.added,      color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" },
-            { label: "Subtracted", count: diff.subtracted, color: "text-red-400",     bg: "bg-red-500/10 border-red-500/20" },
-            { label: "Modified",   count: diff.modified,   color: "text-yellow-400",  bg: "bg-yellow-500/10 border-yellow-500/20" },
-          ].map(({ label, count, color, bg }) => (
-            <div key={label} className={cn("rounded-md border p-4 text-center", bg)}>
-              <p className={cn("text-2xl font-bold tracking-tight", color)}>{count}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+        <div className="rounded-md border border-border bg-card p-5 space-y-4">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Summary</p>
+
+          {/* Stat row */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-md border border-emerald-500/20 bg-emerald-500/5 p-3 text-center">
+              <p className="text-xl font-bold text-emerald-400">{diff.added}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Added</p>
             </div>
-          ))}
+            <div className="rounded-md border border-red-500/20 bg-red-500/5 p-3 text-center">
+              <p className="text-xl font-bold text-red-400">{diff.subtracted}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Removed</p>
+            </div>
+            <div className="rounded-md border border-yellow-500/20 bg-yellow-500/5 p-3 text-center">
+              <p className="text-xl font-bold text-yellow-400">{diff.modified}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Modified</p>
+            </div>
+          </div>
+
+          {/* Insight text */}
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            v{vB} is{" "}
+            <span className={cn("font-medium", delta >= 0 ? "text-emerald-400" : "text-red-400")}>
+              {delta >= 0 ? "+" : ""}{pct}%
+            </span>{" "}
+            {delta >= 0 ? "larger" : "smaller"} than v{vA}, driven by{" "}
+            <span className="text-foreground font-medium">{dominant}</span>.{" "}
+            <span className="text-foreground font-medium">{affected}%</span> of v{vA}&apos;s records were affected.
+          </p>
+
+          {/* Entity count line */}
+          <p className="text-xs text-muted-foreground border-t border-border/40 pt-3">
+            v{vA}{" "}
+            <span className="text-foreground font-medium font-mono">{diff.total_v1}</span> entities
+            {" → "}
+            v{vB}{" "}
+            <span className="text-foreground font-medium font-mono">{diff.total_v2}</span> entities
+            {" · "}
+            <span className={cn("font-medium font-mono", delta >= 0 ? "text-emerald-400" : "text-red-400")}>
+              {delta >= 0 ? "+" : ""}{delta}
+            </span>
+          </p>
         </div>
-      )}
-
-      {/* insight */}
-      {diff && !diffLoading && <InsightCard />}
-
-      {/* ── diff section ── */}
-      {diff && !diffLoading && (
-        <>
-          {/* filters + view toggle */}
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-1 bg-accent border border-border rounded-md p-1">
-              {FILTERS.map((f) => (
-                <button
-                  key={f.value}
-                  onClick={() => setFilter(f.value)}
-                  className={cn(
-                    "px-3 py-1 text-xs rounded transition-colors whitespace-nowrap",
-                    filter === f.value
-                      ? "bg-background border border-border text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {f.label}
-                  <span className="ml-1.5 text-muted-foreground/40">{f.count()}</span>
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-1 bg-accent border border-border rounded-md p-1">
-              <button
-                onClick={() => setViewMode("tabular")}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1 text-xs rounded transition-colors",
-                  viewMode === "tabular"
-                    ? "bg-background border border-border text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Table2 size={12} /> Tabular
-              </button>
-              <button
-                onClick={() => setViewMode("json")}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1 text-xs rounded transition-colors",
-                  viewMode === "json"
-                    ? "bg-background border border-border text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Braces size={12} /> JSON
-              </button>
-            </div>
-          </div>
-
-          {/* pagination top */}
-          {filteredRecords.length > pageSize && (
-            <Pagination
-              page={page} totalPages={totalPages} pageSize={pageSize}
-              total={filteredRecords.length}
-              onPage={setPage}
-              onPageSize={(s) => { setPageSize(s); setPage(1); }}
-            />
-          )}
-
-          {/* records */}
-          {filteredRecords.length === 0 ? (
-            <div className="flex items-center justify-center py-16 text-xs text-muted-foreground">
-              No records match this filter.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {pageRecords.map((record) =>
-                viewMode === "tabular" ? (
-                  <TabularRecord key={record.id} record={record} vA={vA} vB={vB} />
-                ) : (
-                  <JsonRecord key={record.id} record={record} vA={vA} vB={vB} />
-                )
-              )}
-            </div>
-          )}
-
-          {/* pagination bottom */}
-          {filteredRecords.length > 0 && (
-            <Pagination
-              page={page} totalPages={totalPages} pageSize={pageSize}
-              total={filteredRecords.length}
-              onPage={setPage}
-              onPageSize={(s) => { setPageSize(s); setPage(1); }}
-            />
-          )}
-        </>
       )}
 
       {diffLoading && (
@@ -1049,20 +536,55 @@ if (vers.length >= 2) {
         </div>
       )}
 
-      {/* ── full dataset viewer ── */}
-      {!diffLoading && versions.length > 0 && (
-        <>
-          <div className="border-t border-border/40 pt-6">
-            <Card className="bg-card border-border">
-              <CardContent className="p-5">
-                <DatasetViewer versions={versions} activeVersion={activeVersionNumber}
-                 datasetId={datasetId}/>
-              </CardContent>
-            </Card>
+      {/* Diff records */}
+      {diff && !diffLoading && (
+        <div className="space-y-3">
+          {/* Filter tabs */}
+          <div className="flex items-center gap-1 bg-accent border border-border rounded-md p-1 w-fit">
+            {FILTERS.map((f) => (
+              <button
+                key={f.value}
+                onClick={() => setFilter(f.value)}
+                className={cn(
+                  "px-3 py-1 text-xs rounded transition-colors whitespace-nowrap",
+                  filter === f.value
+                    ? "bg-background border border-border text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {f.label}
+                <span className="ml-1.5 text-muted-foreground/40">{f.count}</span>
+              </button>
+            ))}
           </div>
-        </>
-      )}
 
+          {filteredRecords.length === 0 ? (
+            <div className="flex items-center justify-center py-16 text-xs text-muted-foreground">
+              No records match this filter.
+            </div>
+          ) : (
+            <>
+              <Pagination
+                page={page} totalPages={totalPages} pageSize={pageSize}
+                total={filteredRecords.length}
+                onPage={setPage}
+                onPageSize={(s) => { setPageSize(s); setPage(1); }}
+              />
+              <div className="space-y-2">
+                {pageRecords.map((record) => (
+                  <DiffRow key={record.id} record={record} vA={vA} vB={vB} />
+                ))}
+              </div>
+              <Pagination
+                page={page} totalPages={totalPages} pageSize={pageSize}
+                total={filteredRecords.length}
+                onPage={setPage}
+                onPageSize={(s) => { setPageSize(s); setPage(1); }}
+              />
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,17 +1,17 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-
-// ── Types ─────────────────────────────────────────────────────────────────────
+import { supabase } from "@/lib/supabase";
+import type { Session } from "@supabase/supabase-js";
 
 export interface User {
   id: string;
   name: string;
   email: string;
-  avatar: string;
   username: string;
   createdAt: string;
   is_admin: boolean;
+  bio: string;
 }
 
 interface AuthContextType {
@@ -21,64 +21,77 @@ interface AuthContextType {
   signOut: () => void;
 }
 
-// ── Context ───────────────────────────────────────────────────────────────────
-
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// ── Mock Google user — replace with Supabase later ───────────────────────────
+async function syncUser(session: Session): Promise<User> {
+  const res = await fetch("http://localhost:8080/auth/sync", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user_id: session.user.id,
+      email: session.user.email,
+      full_name: session.user.user_metadata?.full_name ?? "",
+    }),
+  });
 
-const MOCK_GOOGLE_USER: User = {
-  id: "usr_raphael_001",
-  name: "Raphael Samuel",
-  email: "raphael@vexaro.dev",
-  avatar: "",
-  username: "raphael",
-  createdAt: new Date().toISOString(),
-  is_admin: true,
-};
+  if (!res.ok) throw new Error("auth sync failed");
 
-const STORAGE_KEY = "vexaro_user";
-
-// ── Provider ──────────────────────────────────────────────────────────────────
+  const data = await res.json();
+  return {
+    id: data.user_id,
+    name: session.user.user_metadata?.full_name ?? "",
+    email: data.email,
+    username: data.username,
+    createdAt: data.created_at,
+    is_admin: data.is_admin,
+    bio: data.bio ?? "",
+  };
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Rehydrate session on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        // Always merge with MOCK_GOOGLE_USER so dev changes are reflected immediately
-        const parsed = JSON.parse(stored);
-        setUser({ ...MOCK_GOOGLE_USER, createdAt: parsed.createdAt });
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        try {
+          const u = await syncUser(session);
+          setUser(u);
+        } catch {
+          setUser(null);
+        }
       }
-    } catch {}
-    setLoading(false);
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        try {
+          const u = await syncUser(session);
+          setUser(u);
+        } catch {
+          setUser(null);
+        }
+      } else if (event === "SIGNED_OUT") {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  // Simulate Google OAuth
-  // When you wire Supabase: replace this with supabase.auth.signInWithOAuth({ provider: "google" })
   async function signInWithGoogle() {
-    setLoading(true);
-    await new Promise((r) => setTimeout(r, 1200));
-
-    const stored = localStorage.getItem(STORAGE_KEY);
-    const sessionUser: User = {
-      ...MOCK_GOOGLE_USER,
-      createdAt: stored
-        ? JSON.parse(stored).createdAt
-        : new Date().toISOString(),
-    };
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionUser));
-    setUser(sessionUser);
-    setLoading(false);
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
   }
 
-  function signOut() {
-    localStorage.removeItem(STORAGE_KEY);
+  async function signOut() {
+    await supabase.auth.signOut();
     setUser(null);
   }
 
@@ -88,8 +101,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
-// ── Hook ──────────────────────────────────────────────────────────────────────
 
 export function useAuth() {
   const ctx = useContext(AuthContext);

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { useRedirectToDashboard } from "@/hooks/useRedirectToDashboard";
+import { FaReddit } from "react-icons/fa";
 import {
   Plus,
   Trash2,
@@ -50,6 +50,7 @@ interface PipelinePayload extends Step1Form {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
+const REDDIT_RED = "#FF4500";
 const DATE_FLOOR = "2020-01-01";
 const TODAY = new Date().toISOString().split("T")[0];
 const CAP_MIN = 50;
@@ -66,7 +67,7 @@ function Label({ children, required }: { children: React.ReactNode; required?: b
   return (
     <label className="text-xs font-mono text-muted-foreground tracking-widest uppercase flex items-center gap-1 mb-1.5">
       {children}
-      {required && <span className="text-orange-400 text-[10px]">*</span>}
+      {required && <span className="text-[10px]" style={{ color: REDDIT_RED }}>*</span>}
     </label>
   );
 }
@@ -94,12 +95,15 @@ function StepIndicator({ step }: { step: number }) {
             <div
               className={cn(
                 "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-mono font-bold border transition-all",
-                step === n
-                  ? "bg-orange-500 border-orange-500 text-white"
-                  : step > n
-                  ? "bg-orange-500/20 border-orange-500/40 text-orange-400"
-                  : "bg-accent border-border text-muted-foreground"
+                step === n ? "text-white" : step > n ? "bg-transparent" : "bg-accent border-border text-muted-foreground"
               )}
+              style={
+                step === n
+                  ? { backgroundColor: REDDIT_RED, borderColor: REDDIT_RED }
+                  : step > n
+                  ? { borderColor: `${REDDIT_RED}66`, backgroundColor: `${REDDIT_RED}22`, color: REDDIT_RED }
+                  : {}
+              }
             >
               {n}
             </div>
@@ -107,7 +111,12 @@ function StepIndicator({ step }: { step: number }) {
               {label}
             </span>
           </div>
-          {i < 1 && <div className={cn("w-8 h-px mx-1", step > 1 ? "bg-orange-500/40" : "bg-border")} />}
+          {i < 1 && (
+            <div
+              className="w-8 h-px mx-1"
+              style={step > 1 ? { backgroundColor: `${REDDIT_RED}66` } : { backgroundColor: "var(--border)" }}
+            />
+          )}
         </div>
       ))}
     </div>
@@ -136,6 +145,12 @@ function Step1({ onNext }: { onNext: (data: Step1Form) => void }) {
     return Object.keys(e).length === 0;
   };
 
+  const rFocus = "focus-visible:ring-[#FF4500]/40 focus-visible:border-[#FF4500]/50";
+  const rSelected = (active: boolean) =>
+    active
+      ? "bg-[#FF4500]/10 border-[#FF4500]/50 shadow-[0_0_12px_rgba(255,69,0,0.1)]"
+      : "bg-accent/20 border-border hover:border-[#FF4500]/30";
+
   return (
     <div className="space-y-6">
       <div>
@@ -145,8 +160,8 @@ function Step1({ onNext }: { onNext: (data: Step1Form) => void }) {
           onChange={(e) => set("name", e.target.value)}
           placeholder="e.g. r-nigeria-tech"
           className={cn(
-            "bg-accent/30 border-border text-foreground placeholder:text-muted-foreground font-mono text-sm focus-visible:ring-orange-500/30 focus-visible:border-orange-500/50",
-            errors.name && "border-destructive focus-visible:border-destructive"
+            `bg-accent/30 border-border text-foreground placeholder:text-muted-foreground font-mono text-sm ${rFocus}`,
+            errors.name && "border-destructive"
           )}
         />
         <FieldError msg={errors.name} />
@@ -160,8 +175,8 @@ function Step1({ onNext }: { onNext: (data: Step1Form) => void }) {
           placeholder="What Reddit communities or topics does this dataset cover?"
           rows={3}
           className={cn(
-            "bg-accent/30 border-border text-foreground placeholder:text-muted-foreground text-sm resize-none focus-visible:ring-orange-500/30 focus-visible:border-orange-500/50",
-            errors.description && "border-destructive focus-visible:border-destructive"
+            `bg-accent/30 border-border text-foreground placeholder:text-muted-foreground text-sm resize-none ${rFocus}`,
+            errors.description && "border-destructive"
           )}
         />
         <FieldError msg={errors.description} />
@@ -175,7 +190,7 @@ function Step1({ onNext }: { onNext: (data: Step1Form) => void }) {
             value={form.tag}
             onChange={(e) => set("tag", e.target.value)}
             placeholder="e.g. community, finance, tech"
-            className="pl-8 bg-accent/30 border-border text-foreground placeholder:text-muted-foreground text-sm focus-visible:ring-orange-500/30 focus-visible:border-orange-500/50"
+            className={`pl-8 bg-accent/30 border-border text-foreground placeholder:text-muted-foreground text-sm ${rFocus}`}
           />
         </div>
         <p className="text-[11px] text-muted-foreground mt-1">Optional. Helps with discovery.</p>
@@ -192,25 +207,21 @@ function Step1({ onNext }: { onNext: (data: Step1Form) => void }) {
               key={val}
               type="button"
               onClick={() => set("visibility", val)}
-              className={cn(
-                "flex items-start gap-3 p-3.5 rounded-lg border text-left transition-all duration-150",
-                form.visibility === val
-                  ? "bg-orange-500/10 border-orange-500/40 shadow-[0_0_12px_theme(colors.orange.500/10)]"
-                  : "bg-accent/20 border-border hover:border-orange-500/20"
-              )}
+              className={cn("flex items-start gap-3 p-3.5 rounded-lg border text-left transition-all duration-150", rSelected(form.visibility === val))}
             >
               <div
-                className={cn(
-                  "w-7 h-7 rounded-md border flex items-center justify-center shrink-0 mt-0.5",
+                className="w-7 h-7 rounded-md border flex items-center justify-center shrink-0 mt-0.5"
+                style={
                   form.visibility === val
-                    ? "bg-orange-500/15 border-orange-500/40 text-orange-400"
-                    : "bg-accent border-border text-muted-foreground"
-                )}
+                    ? { backgroundColor: `${REDDIT_RED}26`, borderColor: `${REDDIT_RED}66`, color: REDDIT_RED }
+                    : {}
+                }
               >
-                <Icon size={13} />
+                {form.visibility !== val && <Icon size={13} className="text-muted-foreground" />}
+                {form.visibility === val && <Icon size={13} />}
               </div>
               <div>
-                <p className={cn("text-xs font-semibold", form.visibility === val ? "text-orange-400" : "text-foreground")}>
+                <p className="text-xs font-semibold" style={form.visibility === val ? { color: REDDIT_RED } : {}}>
                   {label}
                 </p>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">{desc}</p>
@@ -232,25 +243,20 @@ function Step1({ onNext }: { onNext: (data: Step1Form) => void }) {
               key={val}
               type="button"
               onClick={() => set("nightly", val)}
-              className={cn(
-                "flex items-start gap-3 p-3.5 rounded-lg border text-left transition-all duration-150",
-                form.nightly === val
-                  ? "bg-orange-500/10 border-orange-500/40 shadow-[0_0_12px_theme(colors.orange.500/10)]"
-                  : "bg-accent/20 border-border hover:border-orange-500/20"
-              )}
+              className={cn("flex items-start gap-3 p-3.5 rounded-lg border text-left transition-all duration-150", rSelected(form.nightly === val))}
             >
               <div
-                className={cn(
-                  "w-7 h-7 rounded-md border flex items-center justify-center shrink-0 mt-0.5",
+                className="w-7 h-7 rounded-md border flex items-center justify-center shrink-0 mt-0.5"
+                style={
                   form.nightly === val
-                    ? "bg-orange-500/15 border-orange-500/40 text-orange-400"
-                    : "bg-accent border-border text-muted-foreground"
-                )}
+                    ? { backgroundColor: `${REDDIT_RED}26`, borderColor: `${REDDIT_RED}66`, color: REDDIT_RED }
+                    : {}
+                }
               >
-                <Moon size={13} />
+                <Moon size={13} className={form.nightly === val ? "" : "text-muted-foreground"} />
               </div>
               <div>
-                <p className={cn("text-xs font-semibold", form.nightly === val ? "text-orange-400" : "text-foreground")}>
+                <p className="text-xs font-semibold" style={form.nightly === val ? { color: REDDIT_RED } : {}}>
                   {label}
                 </p>
                 <p className="text-[11px] text-muted-foreground">{desc}</p>
@@ -262,7 +268,8 @@ function Step1({ onNext }: { onNext: (data: Step1Form) => void }) {
 
       <Button
         onClick={() => { if (validate()) onNext(form); }}
-        className="w-full bg-orange-500 text-white hover:bg-orange-600 font-mono text-xs tracking-widest uppercase gap-2"
+        className="w-full text-white font-mono text-xs tracking-widest uppercase gap-2"
+        style={{ backgroundColor: REDDIT_RED }}
       >
         Next <ArrowRight size={13} />
       </Button>
@@ -288,6 +295,8 @@ function Step2({
   const [dateTo, setDateTo] = useState(TODAY);
   const [cap, setCap] = useState(CAP_DEFAULT);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const rFocus = "focus-visible:ring-[#FF4500]/40 focus-visible:border-[#FF4500]/50";
 
   // ── Subreddit helpers ──────────────────────────────────────────────────────
 
@@ -333,8 +342,6 @@ function Step2({
     }
 
     if (subsFilled) {
-      const hasEmpty = subreddits.some((s, i) => i < subreddits.length && s.trim() === "" && subreddits.length > 1);
-      if (hasEmpty) e.subreddits = "Remove empty subreddit fields or fill them in.";
       const filled = subreddits.filter((s) => s.trim().length > 0);
       if (filled.some((s) => !/^[A-Za-z0-9_]+$/.test(s.trim()))) {
         e.subreddits = "Subreddit names can only contain letters, numbers, and underscores.";
@@ -342,19 +349,19 @@ function Step2({
     }
 
     if (kwFilled) {
-      const hasEmpty = keywords.some((k, i) => i < keywords.length && k.trim() === "" && keywords.length > 1);
+      const hasEmpty = keywords.some((k) => k.trim() === "" && keywords.length > 1);
       if (hasEmpty) e.keywords = "Remove empty keyword fields or fill them in.";
     }
 
     if (!dateFrom) {
-  e.dateFrom = "Start date is required.";
-} else if (dateFrom < DATE_FLOOR) {
-  e.dateFrom = `Date cannot be before ${DATE_FLOOR}.`;
-} else if (dateFrom === dateTo) {
-  e.dateFrom = "Start date and end date cannot be the same day.";
-} else if (dateFrom > dateTo) {
-  e.dateFrom = "Start date must be before end date.";
-}
+      e.dateFrom = "Start date is required.";
+    } else if (dateFrom < DATE_FLOOR) {
+      e.dateFrom = `Date cannot be before ${DATE_FLOOR}.`;
+    } else if (dateFrom === dateTo) {
+      e.dateFrom = "Start date and end date cannot be the same day.";
+    } else if (dateFrom > dateTo) {
+      e.dateFrom = "Start date must be before end date.";
+    }
 
     if (cap < CAP_MIN || cap > CAP_MAX) {
       e.cap = `Cap must be between ${CAP_MIN} and ${CAP_MAX}.`;
@@ -373,7 +380,10 @@ function Step2({
 
       {/* Source error banner */}
       {errors.source && (
-        <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-orange-500/30 bg-orange-500/8 text-orange-400 text-xs">
+        <div
+          className="flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs"
+          style={{ borderColor: `${REDDIT_RED}50`, backgroundColor: `${REDDIT_RED}10`, color: REDDIT_RED }}
+        >
           <AlertCircle size={12} className="shrink-0" /> {errors.source}
         </div>
       )}
@@ -388,20 +398,26 @@ function Step2({
               <button
                 type="button"
                 onClick={addSubreddit}
-                className="flex items-center gap-1 text-[11px] font-mono text-orange-400 hover:text-orange-300 transition-colors border border-orange-500/30 hover:border-orange-500/60 rounded-md px-2 py-1 bg-orange-500/5"
+                className="flex items-center gap-1 text-[11px] font-mono transition-colors border rounded-md px-2 py-1"
+                style={{ color: REDDIT_RED, borderColor: `${REDDIT_RED}40`, backgroundColor: `${REDDIT_RED}08` }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = `${REDDIT_RED}80`)}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = `${REDDIT_RED}40`)}
               >
                 <Plus size={11} /> Add
               </button>
             )}
           </div>
         </div>
+        <p className="text-[11px] text-muted-foreground mb-2">
+          Combined with keywords for targeted search. Leave keywords empty to fetch all posts from these subreddits.
+        </p>
         <div className="space-y-2">
           {subreddits.map((sub, i) => (
             <div key={i} className="flex items-center gap-2">
-              <div className="flex-1 flex items-center bg-accent/30 border border-border rounded-md overflow-hidden focus-within:border-orange-500/50 focus-within:ring-1 focus-within:ring-orange-500/20 transition-all">
+              <div className={`flex-1 flex items-center bg-accent/30 border border-border rounded-md overflow-hidden transition-all focus-within:border-[#FF4500]/50 focus-within:ring-1 focus-within:ring-[#FF4500]/20`}>
                 <div className="flex items-center gap-1 px-3 border-r border-border bg-accent/50 h-10 shrink-0">
-                  <Hash size={11} className="text-orange-400" />
-                  <span className="text-xs font-mono text-orange-400">r/</span>
+                  <Hash size={11} style={{ color: REDDIT_RED }} />
+                  <span className="text-xs font-mono" style={{ color: REDDIT_RED }}>r/</span>
                 </div>
                 <Input
                   value={sub}
@@ -436,7 +452,10 @@ function Step2({
               <button
                 type="button"
                 onClick={addKeyword}
-                className="flex items-center gap-1 text-[11px] font-mono text-orange-400 hover:text-orange-300 transition-colors border border-orange-500/30 hover:border-orange-500/60 rounded-md px-2 py-1 bg-orange-500/5"
+                className="flex items-center gap-1 text-[11px] font-mono transition-colors border rounded-md px-2 py-1"
+                style={{ color: REDDIT_RED, borderColor: `${REDDIT_RED}40`, backgroundColor: `${REDDIT_RED}08` }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = `${REDDIT_RED}80`)}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = `${REDDIT_RED}40`)}
               >
                 <Plus size={11} /> Add
               </button>
@@ -446,15 +465,15 @@ function Step2({
         <div className="flex items-center gap-1.5 mb-2 px-2.5 py-1.5 rounded-md bg-accent/30 border border-border">
           <Search size={11} className="text-muted-foreground shrink-0" />
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Search Reddit for posts matching these keywords. Combined with subreddits for targeted search.
+            Search Reddit globally, or within your subreddits if provided above.
           </p>
         </div>
         <div className="space-y-2">
           {keywords.map((kw, i) => (
             <div key={i} className="flex items-center gap-2">
-              <div className="flex-1 flex items-center bg-accent/30 border border-border rounded-md overflow-hidden focus-within:border-orange-500/50 focus-within:ring-1 focus-within:ring-orange-500/20 transition-all">
+              <div className="flex-1 flex items-center bg-accent/30 border border-border rounded-md overflow-hidden transition-all focus-within:border-[#FF4500]/50 focus-within:ring-1 focus-within:ring-[#FF4500]/20">
                 <div className="flex items-center justify-center px-3 border-r border-border bg-accent/50 h-10 shrink-0">
-                  <Search size={11} className="text-orange-400" />
+                  <Search size={11} style={{ color: REDDIT_RED }} />
                 </div>
                 <Input
                   value={kw}
@@ -506,8 +525,8 @@ function Step2({
           placeholder={"https://reddit.com/r/Nigeria/comments/abc123/...\nhttps://reddit.com/r/technology/comments/xyz456/..."}
           rows={5}
           className={cn(
-            "bg-accent/30 border-border text-foreground placeholder:text-muted-foreground font-mono text-xs resize-none focus-visible:ring-orange-500/30 focus-visible:border-orange-500/50",
-            errors.urls && "border-destructive focus-visible:border-destructive"
+            `bg-accent/30 border-border text-foreground placeholder:text-muted-foreground font-mono text-xs resize-none ${rFocus}`,
+            errors.urls && "border-destructive"
           )}
         />
         <FieldError msg={errors.urls} />
@@ -532,7 +551,7 @@ function Step2({
               max={dateTo || TODAY}
               onChange={(e) => setDateFrom(e.target.value)}
               className={cn(
-                "bg-accent/30 border-border text-foreground text-sm focus-visible:ring-orange-500/30 focus-visible:border-orange-500/50",
+                `bg-accent/30 border-border text-foreground text-sm ${rFocus}`,
                 errors.dateFrom && "border-destructive"
               )}
             />
@@ -549,7 +568,7 @@ function Step2({
               min={dateFrom || DATE_FLOOR}
               max={TODAY}
               onChange={(e) => setDateTo(e.target.value)}
-              className="bg-accent/30 border-border text-foreground text-sm focus-visible:ring-orange-500/30 focus-visible:border-orange-500/50"
+              className={`bg-accent/30 border-border text-foreground text-sm ${rFocus}`}
             />
           </div>
         </div>
@@ -572,14 +591,17 @@ function Step2({
             max={CAP_MAX}
             onChange={(e) => setCap(Number(e.target.value))}
             className={cn(
-              "bg-accent/30 border-border text-foreground font-mono text-sm w-32 focus-visible:ring-orange-500/30 focus-visible:border-orange-500/50",
+              `bg-accent/30 border-border text-foreground font-mono text-sm w-32 ${rFocus}`,
               errors.cap && "border-destructive"
             )}
           />
           <div className="flex-1 h-1.5 rounded-full bg-accent/50 overflow-hidden">
             <div
-              className="h-full bg-orange-500/60 rounded-full transition-all duration-150"
-              style={{ width: `${((cap - CAP_MIN) / (CAP_MAX - CAP_MIN)) * 100}%` }}
+              className="h-full rounded-full transition-all duration-150"
+              style={{
+                width: `${((cap - CAP_MIN) / (CAP_MAX - CAP_MIN)) * 100}%`,
+                backgroundColor: `${REDDIT_RED}80`,
+              }}
             />
           </div>
           <span className="text-[11px] font-mono text-muted-foreground shrink-0">{CAP_MIN}–{CAP_MAX}</span>
@@ -604,7 +626,8 @@ function Step2({
           }
         }}
         disabled={submitting}
-        className="w-full bg-orange-500 text-white hover:bg-orange-600 font-mono text-xs tracking-widest uppercase gap-2 disabled:opacity-60"
+        className="w-full text-white font-mono text-xs tracking-widest uppercase gap-2 disabled:opacity-60"
+        style={{ backgroundColor: REDDIT_RED }}
       >
         <Play size={13} /> {submitting ? "Queuing..." : "Run Pipeline"}
       </Button>
@@ -621,8 +644,6 @@ export default function CreateRedditDatasetPage() {
   const [meta, setMeta] = useState<Step1Form | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  
-  useRedirectToDashboard();
 
   const handleNext = (data: Step1Form) => {
     setMeta(data);
@@ -638,14 +659,10 @@ export default function CreateRedditDatasetPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: user?.id, ...full }),
       });
-
       if (!res.ok) {
         const text = await res.text();
         throw new Error(`Server error ${res.status}: ${text}`);
       }
-
-      const data = await res.json();
-      console.log("Reddit pipeline queued:", data);
       router.push("/dashboard");
     } catch (err: any) {
       setSubmitError(err.message ?? "Something went wrong. Please try again.");
@@ -658,16 +675,14 @@ export default function CreateRedditDatasetPage() {
     <div className="max-w-2xl mx-auto px-5 md:px-8 py-10">
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-1">
-          <p className="text-xs font-mono text-muted-foreground tracking-widest uppercase">Vexaro</p>
-          <span className="flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400">
-            Reddit
-          </span>
+          <FaReddit size={14} style={{ color: REDDIT_RED }} />
+          <p className="text-xs font-mono text-muted-foreground tracking-widest uppercase">Reddit Pipeline</p>
         </div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-1">
-          Create <span className="text-orange-400">Reddit Dataset</span>
+          Create <span style={{ color: REDDIT_RED }}>Reddit</span> Dataset
         </h1>
         <p className="text-sm text-muted-foreground">
-          Pull posts from subreddits or specific Reddit URLs into your pipeline.
+          Pull posts from subreddits, keywords, or specific Reddit URLs.
         </p>
       </div>
 
