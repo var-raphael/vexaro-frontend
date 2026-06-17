@@ -20,12 +20,12 @@ const FREE_PLAN = {
   period: "/mo",
   desc: "For exploration and testing only.",
   features: [
-    "1 datasets",
+    "2 datasets",
     "20 URLs per dataset",
     "10 Serper-discovered URLs per dataset",
-    "Unlimited imported URLs (up to slot limit)",
     "Nightly automatic refresh",
-    "No ping URL or webhook",
+    "On-demand refresh via ping URL",
+    "MCP access included",
     "Full diff viewer & one-click rollback",
     "Full marketplace access",
     "Clone & extend public datasets",
@@ -36,19 +36,19 @@ const FREE_PLAN = {
   href: "/auth",
 };
 
-const STARTER_PLAN = {
-  name: "Starter",
-  price: "$29",
+const PRO_PLAN = {
+  name: "Pro",
+  price: "$35",
   period: "/mo",
   desc: "For builders who need live, versioned web data without managing infrastructure.",
   features: [
-    "3 datasets",
-    "50 URLs per dataset",
-    "20 Serper-discovered URLs per dataset",
-    "Unlimited imported URLs (up to slot limit)",
+    "5 datasets",
+    "100 URLs per dataset",
+    "40 Serper-discovered URLs per dataset",
     "Nightly automatic refresh",
     "On-demand refresh via ping URL",
     "Webhook notifications on refresh",
+    "MCP access included",
     "Full diff viewer & one-click rollback",
     "Full marketplace access",
     "Clone & extend public datasets",
@@ -57,43 +57,27 @@ const STARTER_PLAN = {
   ],
   cta: "Start building",
   href: "/auth",
-};
-
-const PRO_PLAN = {
-  name: "Pro",
-  price: "$59",
-  period: "/mo",
-  desc: "For growing teams who need more data and faster pipelines.",
-  features: [
-    "Everything in Starter",
-    "6 datasets",
-    "150 URLs per dataset",
-    "50 Serper-discovered URLs per dataset",
-    "Unlimited imported URLs (up to slot limit)",
-    "Priority crawling queue",
-    "Priority support",
-  ],
-  cta: "Start building",
-  href: "/auth",
+  highlight: true,
 };
 
 const SCALE_PLAN = {
   name: "Scale",
-  price: "$99",
-  period: "/mo",
+  price: "Coming Soon",
+  period: "",
   desc: "For teams and startups running serious data pipelines.",
   features: [
-    "Everything in Pro",
     "Unlimited datasets",
     "500 URLs per dataset",
     "100 Serper-discovered URLs per dataset",
-    "Unlimited imported URLs (up to slot limit)",
+    "Everything in Pro",
+    "Priority crawling queue",
     "Custom refresh schedules",
     "Dedicated support",
   ],
-  cta: "Start scaling",
-  href: "/auth",
+  cta: "Join waitlist",
+  href: "/waitlist",
 };
+
 // ── Animation ─────────────────────────────────────────────────────────────────
 
 function useInView(threshold = 0.12) {
