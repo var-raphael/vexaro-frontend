@@ -172,7 +172,7 @@ export function AppNavbar() {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent/20 transition-colors outline-none">
               <Avatar className="w-7 h-7 border border-border">
-                <AvatarImage src={user?.avatar ?? ""} alt={user?.name ?? ""} />
+                
                 <AvatarFallback className="bg-accent text-primary text-xs font-semibold">
                   {initials}
                 </AvatarFallback>
@@ -231,7 +231,7 @@ export function AppNavbar() {
           {/* User info */}
           <div className="flex items-center gap-3 px-4 pb-6 border-b border-border">
             <Avatar className="w-9 h-9 border border-border">
-              <AvatarImage src={user?.avatar ?? ""} alt={user?.name ?? ""} />
+
               <AvatarFallback className="bg-accent text-primary text-sm font-semibold">
                 {initials}
               </AvatarFallback>
