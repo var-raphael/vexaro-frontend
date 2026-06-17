@@ -163,6 +163,7 @@ function CloneModal({ dataset, open, onClose }: CloneModalProps) {
   }
 
   async function handleClone() {
+    if (!dataset) return;
     setCloning(true);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dataset/clone`, {
