@@ -177,12 +177,6 @@ function Hero() {
         background: "radial-gradient(ellipse at top left, var(--glow-color) 0%, transparent 70%)",
       }} />
 
-      <div className="absolute top-28 right-6 md:right-16 flex items-center gap-2">
-        <span className="font-mono text-xs" style={{ color: "var(--muted)" }}>PUBLIC BETA</span>
-        <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--accent-color)", boxShadow: "0 0 6px var(--accent-color)" }} />
-      </div>
-
-
       <div className="relative z-10 max-w-5xl">
         <h1
           className="font-black leading-none tracking-tight mb-8"
@@ -222,8 +216,9 @@ function Hero() {
             </Link>
           </div>
 
-          <p className="mt-6 font-mono text-xs" style={{ color: "var(--muted-2)" }}>
-            No credit card required · Upgrade anytime
+          <p className="mt-6 flex items-center gap-2 font-mono text-xs" style={{ color: "var(--muted-2)" }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--accent-color)", boxShadow: "0 0 6px var(--accent-color)" }} />
+            Public beta · No credit card required · Upgrade anytime
           </p>
         </div>
       </div>
@@ -586,11 +581,7 @@ function DatasetsPreview() {
 
 // ── Pricing ───────────────────────────────────────────────────────────────────
 
-type AnyPlan =
-  | typeof FREE_PLAN
-  | typeof STARTER_PLAN
-  | typeof PRO_PLAN
-  | typeof SCALE_PLAN;
+type AnyPlan = typeof FREE_PLAN | typeof PRO_PLAN | typeof SCALE_PLAN;
 
 function PricingCard({
   plan,
@@ -730,7 +721,7 @@ function Pricing() {
               letterSpacing: "-0.04em",
             }}
           >
-            Four plans. No surprises.
+            Three plans. No surprises.
           </h2>
           <p
             className="text-sm md:text-base mb-14 max-w-lg"
@@ -741,13 +732,11 @@ function Pricing() {
           </p>
         </Reveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <PricingCard plan={FREE_PLAN} delay={0} />
-          <PricingCard plan={STARTER_PLAN} highlight delay={80} />
-          <PricingCard plan={PRO_PLAN} delay={160} />
-          <PricingCard plan={SCALE_PLAN} delay={240} />
-        </div>
-
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+  <PricingCard plan={FREE_PLAN} delay={0} />
+  <PricingCard plan={PRO_PLAN} highlight delay={80} />
+  <PricingCard plan={SCALE_PLAN} delay={160} />
+</div>
         <Reveal delay={280}>
           <p className="mt-8 font-mono text-xs" style={{ color: "var(--muted-2)" }}>
             Premium Marketplace datasets at{" "}
