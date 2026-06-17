@@ -600,7 +600,7 @@ function Step2({
       {phase !== "idle" && (
         <ProgressLog
           lines={progressLines}
-          phase={phase === "idle" ? "running" : phase}
+          phase={phase}
           errorMsg={errorMsg}
         />
       )}
