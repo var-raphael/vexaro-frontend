@@ -5,7 +5,7 @@ import {
   Database, GitBranch, Diff, Undo2, Copy,
   RefreshCw, Key, Zap, ArrowRight, Check,
   Globe, Shield, ChevronRight, ArrowUpRight,
-  Webhook, FileJson,
+  Webhook, FileJson, Bot, Terminal,
 } from "lucide-react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
@@ -476,6 +476,115 @@ function Features() {
   );
 }
 
+// ── MCP / AI Agents ───────────────────────────────────────────────────────────
+
+const MCP_POINTS = [
+  {
+    title: "Query it like a tool, not an endpoint",
+    detail: "list_datasets, get_dataset_schema, and query_dataset let an agent browse, filter, and sort your data conversationally. \"What's trending in my dataset\" just works, no code required.",
+  },
+  {
+    title: "Hand off the cleaning, not just the read",
+    detail: "pull_for_edit and push_alt_version let Claude pull the raw entities, fix nulls or duplicates in plain English, and publish the result as your alt version automatically.",
+  },
+  {
+    title: "The same alt system you already trust",
+    detail: "Nothing new to learn. Agent-driven cleanups land in the exact alt pipeline you'd use manually — versioned, reversible, and downloadable like everything else.",
+  },
+];
+
+function MCPSection() {
+  return (
+    <section id="mcp" className="vx-section" style={{ borderBottom: "1px solid var(--line-color)" }}>
+      <div className="vx-container">
+        <Reveal>
+          <div className="flex items-center gap-4 mb-16">
+            <div className="w-8 h-px" style={{ background: "var(--accent-color)" }} />
+            <span className="font-mono text-xs tracking-widest uppercase" style={{ color: "var(--accent-color)" }}>
+              MCP · AI Agents
+            </span>
+          </div>
+        </Reveal>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0" style={{ border: "1px solid var(--line-color)" }}>
+          <div className="p-8 md:p-12" style={{ borderRight: "1px solid var(--line-color)" }}>
+            <Reveal>
+              <h2
+                className="font-black tracking-tight leading-tight mb-6"
+                style={{ fontSize: "clamp(1.6rem, 3vw, 2.2rem)", fontFamily: "var(--font-display)", letterSpacing: "-0.03em" }}
+              >
+                Not just an API.
+                <br />
+                <span style={{ color: "var(--muted)" }}>A tool Claude can call.</span>
+              </h2>
+              <p
+                className="text-sm leading-relaxed mb-8"
+                style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}
+              >
+                Every Vexaro dataset ships with a native MCP server, included on every plan. Claude — or any MCP-compatible agent — can query it, filter it, and clean it without you writing a script.
+              </p>
+            </Reveal>
+            <div className="space-y-6">
+              {MCP_POINTS.map(({ title, detail }, i) => (
+                <Reveal key={title} delay={i * 70}>
+                  <div className="flex gap-4">
+                    <Bot size={13} className="mt-0.5 shrink-0" style={{ color: "var(--accent-color)" }} />
+                    <div>
+                      <p className="text-sm font-semibold mb-1" style={{ fontFamily: "var(--font-body)" }}>{title}</p>
+                      <p className="text-xs leading-relaxed" style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}>{detail}</p>
+                    </div>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-8 md:p-12 flex flex-col" style={{ background: "var(--card-alt)" }}>
+            <Reveal delay={80}>
+              <div className="flex items-center gap-3 mb-6">
+                <Terminal size={13} style={{ color: "var(--accent-color)" }} />
+                <span className="font-mono text-xs tracking-widest uppercase" style={{ color: "var(--accent-color)" }}>
+                  Live in a Claude chat
+                </span>
+              </div>
+            </Reveal>
+
+            <Reveal delay={140}>
+              <div
+                className="font-mono text-xs leading-relaxed p-5 mb-4"
+                style={{ background: "var(--bg)", border: "1px solid var(--line-color)", color: "var(--muted)" }}
+              >
+                <p style={{ color: "var(--fg)" }}>&gt; query_dataset(dataset_id: 142, keywords: "senior remote", sort: "salary:desc", limit: 5)</p>
+                <p className="mt-2" style={{ color: "var(--accent-color)" }}>→ 47 entities matched</p>
+                <p style={{ color: "var(--accent-color)" }}>→ returned as JSON, sorted by salary</p>
+              </div>
+            </Reveal>
+
+            <Reveal delay={200}>
+              <div
+                className="font-mono text-xs leading-relaxed p-5"
+                style={{ background: "var(--bg)", border: "1px solid var(--line-color)", color: "var(--muted)" }}
+              >
+                <p style={{ color: "var(--fg)" }}>&gt; pull_for_edit(dataset_id: 142, use_alt: false)</p>
+                <p className="mt-2">→ Claude reviews 1,204 entities</p>
+                <p>→ dedupes, fixes null salary fields</p>
+                <p className="mt-3" style={{ color: "var(--fg)" }}>&gt; push_alt_version(dataset_id: 142, version: 3, entities: [...])</p>
+                <p className="mt-2" style={{ color: "var(--accent-color)" }}>→ live at /remote-jobs/v3/alt</p>
+              </div>
+            </Reveal>
+
+            <Reveal delay={260}>
+              <p className="mt-6 text-xs" style={{ color: "var(--muted-2)", fontFamily: "var(--font-body)" }}>
+                MCP access is included on every plan, including Free.
+              </p>
+            </Reveal>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── Datasets Preview ──────────────────────────────────────────────────────────
 
 const DATASETS = [
@@ -848,6 +957,7 @@ export default function LandingPage() {
       <ProblemSolution />
       <HowItWorks />
       <Features />
+      <MCPSection />
       <DatasetsPreview />
       <Pricing />
       <CTA />
