@@ -187,9 +187,16 @@ function Hero() {
             letterSpacing: "-0.04em",
           }}
         >
-          Any website.
-          <br />
-          <Typewriter words={["clean data.", "live API.", "your schema.", "versioned."]} />
+          Data infrastructure
+<br />
+for the live web.
+<br />
+          <Typewriter words={[
+  "your agent's knowledge layer.",
+  "your dashboard's live source.",
+  "your model's training pipeline.",
+  "your competitor tracker.",
+]} />
         </h1>
 
         <div style={{ animation: "fadeUp 0.7s ease 0.25s both" }}>

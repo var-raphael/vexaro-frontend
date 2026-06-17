@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vexaro - The GitHub for Web Data & AI Datasets",
+  title: "Vexaro - Data infrastructure for the live web",
   description:
-    "Turn any public website into a structured API or AI-ready dataset. Version-controlled, always fresh, ready in hours.",
+    "Data infrastructure for the live web. Structured, versioned, and always fresh — for AI agents, dashboards, and data pipelines.",
 };
 
 export default function RootLayout({
