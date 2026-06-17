@@ -677,12 +677,17 @@ export default function CreateDatasetPage() {
     visibility: "public",
     nightly: "no",
   });
-  const [step2Form, setStep2Form] = useState({
+  const [step2Form, setStep2Form] = useState<{
+  intent: string;
+  extractIntent: string;
+  schema: SchemaField[];
+  urls: string;
+}>({
   intent: "",
   extractIntent: "",
   schema: [{ id: Date.now(), type: "", description: "", dataType: "string" as const }],
   urls: "",
-  });
+});
   const [meta, setMeta] = useState<Step1Form | null>(null);
   const [phase, setPhase] = useState<"idle" | "running" | "done" | "error">("idle");
   const [progressLines, setProgressLines] = useState<ProgressLine[]>([]);
