@@ -13,6 +13,7 @@ import { VexaroWordmark } from "@/components/ui/vexaro-mark";
 const NAV_LINKS = [
   { label: "How it works", href: "/#how", icon: Info },
   { label: "Features", href: "/#features", icon: Zap },
+  { label: "MCP", href: "/#mcp", icon: Bot },
   { label: "Datasets", href: "/#datasets", icon: Database },
   { label: "Pricing", href: "/#pricing", icon: DollarSign },
   { label: "Docs", href: "/docs", icon: BookOpen },
@@ -31,7 +32,7 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
-    const ids = ["how", "features", "datasets", "pricing"];
+    const ids = ["how", "features", "datasets", "pricing", "mcp"];
     const observers: IntersectionObserver[] = [];
 
     ids.forEach((id) => {
