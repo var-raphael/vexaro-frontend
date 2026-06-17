@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { Menu, Zap, BookOpen, DollarSign, Info, Database } from "lucide-react";
+import { Menu, Zap, BookOpen, DollarSign, Info, Database, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VexaroWordmark } from "@/components/ui/vexaro-mark";
 
