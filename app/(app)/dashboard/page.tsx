@@ -708,11 +708,16 @@ function DatasetCard({
                 )}
           </div>
 
-          <Link href={viewHref}>
-            <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 border-border hover:border-primary/40 hover:text-primary bg-transparent">
-              <Eye size={11} /> View
-            </Button>
-          </Link>
+         <Link href={viewHref} onClick={(e) => dataset.status !== "active" && e.preventDefault()}>
+  <Button
+    size="sm"
+    variant="outline"
+    disabled={dataset.status !== "active"}
+    className="h-7 text-xs gap-1.5 border-border hover:border-primary/40 hover:text-primary bg-transparent disabled:opacity-40 disabled:cursor-not-allowed"
+  >
+    <Eye size={11} /> View
+  </Button>
+</Link>
         </div>
 
       </CardContent>
@@ -771,7 +776,17 @@ export default function DatasetsPage() {
     }
   }, [user?.id]);
 
-  useEffect(() => { fetchDatasets(); }, [fetchDatasets]);
+  useEffect(() => {
+  fetchDatasets();
+}, [fetchDatasets]);
+
+useEffect(() => {
+  const hasProcessing = datasets.some((d) => d.status === "processing");
+  if (!hasProcessing) return;
+
+  const interval = setInterval(fetchDatasets, 10000);
+  return () => clearInterval(interval);
+}, [datasets, fetchDatasets]);
 
   const active = datasets.filter((d) => d.status === "active").length;
   const cloned = datasets.filter((d) => d.is_cloned).length;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,22 +15,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import {
-  Home, LayoutDashboard, User, Database,
+  LayoutDashboard, User, Database,
   Bell, Settings, BookOpen, Info, LogOut, Menu, ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VexaroWordmark } from "@/components/ui/vexaro-mark";
 import { useAuth } from "@/context/AuthContext";
 
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+
 // ── Nav items ─────────────────────────────────────────────────────────────────
 
 const NAV_ITEMS = [
-  { label: "Home",      href: "/home",      icon: Home },
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Datasets",  href: "/datasets",  icon: Database },
 ];
 
-// Profile href is built dynamically from username — see below
 const STATIC_SECONDARY_ITEMS = [
   { label: "Settings", href: "/settings", icon: Settings },
   { label: "Docs",     href: "/docs",     icon: BookOpen },
@@ -51,7 +51,6 @@ function NavLink({
   onClick?: () => void;
 }) {
   const pathname = usePathname();
-  // active if exact match OR pathname starts with href (covers /profile/raphael)
   const active = pathname === href || pathname.startsWith(href + "/");
 
   return (
@@ -65,10 +64,7 @@ function NavLink({
           : "text-muted-foreground hover:text-foreground hover:bg-accent/20 border border-transparent"
       )}
     >
-      <Icon
-        size={16}
-        className={cn(active ? "text-primary" : "text-muted-foreground")}
-      />
+      <Icon size={16} className={cn(active ? "text-primary" : "text-muted-foreground")} />
       {label}
     </Link>
   );
@@ -82,11 +78,10 @@ function ActivePageIndicator({ profileHref }: { profileHref: string }) {
   const allItems = [
     ...NAV_ITEMS,
     ...STATIC_SECONDARY_ITEMS,
-    { label: "Profile",       href: profileHref,    icon: User },
+    { label: "Profile",       href: profileHref,      icon: User },
     { label: "Notifications", href: "/notifications", icon: Bell },
   ];
 
-  // Match exact first, then startsWith for dynamic routes like /profile/:username
   const current =
     allItems.find((item) => item.href === pathname) ??
     allItems.find((item) => item.href !== "/" && pathname.startsWith(item.href + "/"));
@@ -109,17 +104,33 @@ export function AppNavbar() {
   const { user, signOut } = useAuth();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const profileHref = user ? `/profile/${user.username}` : "/profile";
 
   const secondaryItems = [
-    { label: "Profile",  href: profileHref,   icon: User },
+    { label: "Profile", href: profileHref, icon: User },
     ...STATIC_SECONDARY_ITEMS,
   ];
 
   const initials = user?.name
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase()
     : "?";
+
+  useEffect(() => {
+    if (!user?.id) return;
+    async function fetchUnread() {
+      try {
+        const res = await fetch(`${API}/notifications?user_id=${user!.id}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setUnreadCount(data.unread_count ?? 0);
+      } catch {
+        // silently fail — nav shouldn't break if this fails
+      }
+    }
+    fetchUnread();
+  }, [user?.id]);
 
   function handleSignOut() {
     signOut();
@@ -130,7 +141,7 @@ export function AppNavbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 md:px-8 h-16 bg-background/80 backdrop-blur-md border-b border-border">
 
       {/* Logo */}
-      <Link href="/home" className="shrink-0">
+      <Link href="/dashboard" className="shrink-0">
         <VexaroWordmark markSize={28} textSize="text-lg" />
       </Link>
 
@@ -143,7 +154,6 @@ export function AppNavbar() {
 
       {/* Desktop right */}
       <div className="hidden md:flex items-center gap-2">
-
         <ActivePageIndicator profileHref={profileHref} />
 
         {/* Notifications */}
@@ -152,8 +162,9 @@ export function AppNavbar() {
           className="relative p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/20 transition-colors"
         >
           <Bell size={18} />
-          {/* swap this span for a real unread-count check later */}
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary" />
+          {unreadCount > 0 && (
+            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary" />
+          )}
         </Link>
 
         {/* User dropdown */}
@@ -179,7 +190,6 @@ export function AppNavbar() {
               <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
             </div>
             <DropdownMenuSeparator className="bg-border" />
-
             {secondaryItems.map(({ label, href, icon: Icon }) => (
               <DropdownMenuItem key={href} asChild>
                 <Link
@@ -191,7 +201,6 @@ export function AppNavbar() {
                 </Link>
               </DropdownMenuItem>
             ))}
-
             <DropdownMenuSeparator className="bg-border" />
             <DropdownMenuItem
               onClick={handleSignOut}
@@ -248,12 +257,24 @@ export function AppNavbar() {
             <p className="text-xs font-mono text-muted-foreground px-2 mb-2 tracking-widest uppercase">
               Account
             </p>
-            <NavLink
+            <Link
               href="/notifications"
-              icon={Bell}
-              label="Notifications"
               onClick={() => setOpen(false)}
-            />
+              className={cn(
+                "flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-all duration-150",
+                "text-muted-foreground hover:text-foreground hover:bg-accent/20 border border-transparent"
+              )}
+            >
+              <span className="flex items-center gap-2.5">
+                <Bell size={16} className="text-muted-foreground" />
+                Notifications
+              </span>
+              {unreadCount > 0 && (
+                <span className="text-[10px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </Link>
             {secondaryItems.map((item) => (
               <NavLink key={item.href} {...item} onClick={() => setOpen(false)} />
             ))}

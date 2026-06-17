@@ -106,8 +106,11 @@ function UploadModal({
       const text = await f.text();
       const data = JSON.parse(text);
 
-      // Must be the full result file with an entities key
-      const entities = Array.isArray(data?.entities) ? data.entities : null;
+      const entities = Array.isArray(data) 
+  ? data 
+  : Array.isArray(data?.entities) 
+  ? data.entities 
+  : null;
       if (!entities) {
         setParseError("Invalid format — upload the result file as downloaded from Vexaro.");
         setParsing(false);
@@ -372,39 +375,79 @@ export default function WebAlternatePage() {
   const totalPages = Math.ceil(allEntities.length / PAGE_SIZE);
 
   useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch(
-       `${process.env.NEXT_PUBLIC_API_URL}/dataset/alternate/result?dataset_id=${datasetId}&version_id=${version}&page=1&limit=99999`
+  async function load() {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/dataset/alternate/result?dataset_id=${datasetId}&version_id=${version}&page=1&limit=99999`
+      );
+
+      if (res.status === 404) {
+        // No alt exists yet — create one from the original
+        const originalRes = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/dataset/result?dataset_id=${datasetId}&version_id=${version}&page=1&limit=99999`
         );
-        if (!res.ok) {
-          console.error("Failed to load dataset:", await res.text());
-          return;
-        }
-        const data = await res.json();
-        const fetchedEntities: Entity[] = data.entities ?? [];
+        if (!originalRes.ok) return;
+        const originalData = await originalRes.json();
+        const originalEntities = originalData.entities ?? [];
+
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dataset/alternate/save`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            dataset_id: Number(datasetId),
+            user_id: user?.id,
+            version,
+            entities: originalEntities,
+          }),
+        });
 
         setDataset({
           dataset_id: Number(datasetId),
-          data_name: data.data_name ?? `Dataset ${datasetId}`,
-          total: data.total ?? fetchedEntities.length,
+          data_name: `Dataset ${datasetId}`,
+          total: originalEntities.length,
           created_at: new Date().toISOString(),
           generated_at: new Date().toISOString(),
-          entities: fetchedEntities,
+          entities: originalEntities,
         });
 
         localStorage.removeItem(storageKey);
-        setAllEntities(fetchedEntities);
+        setAllEntities(originalEntities);
         setPage(0);
-        setTextValue(JSON.stringify(fetchedEntities.slice(0, PAGE_SIZE), null, 2));
+        setTextValue(JSON.stringify(originalEntities.slice(0, PAGE_SIZE), null, 2));
         setParseError(null);
         setIsDirty(false);
-      } catch (e) {
-        console.error("Network error loading dataset:", e);
+        return;
       }
+
+      if (!res.ok) {
+        console.error("Failed to load dataset:", await res.text());
+        return;
+      }
+
+      const data = await res.json();
+      const fetchedEntities: Entity[] = data.entities ?? [];
+
+      setDataset({
+        dataset_id: Number(datasetId),
+        data_name: data.data_name ?? `Dataset ${datasetId}`,
+        total: data.total ?? fetchedEntities.length,
+        created_at: new Date().toISOString(),
+        generated_at: new Date().toISOString(),
+        entities: fetchedEntities,
+      });
+
+      localStorage.removeItem(storageKey);
+      setAllEntities(fetchedEntities);
+      setPage(0);
+      setTextValue(JSON.stringify(fetchedEntities.slice(0, PAGE_SIZE), null, 2));
+      setParseError(null);
+      setIsDirty(false);
+    } catch (e) {
+      console.error("Network error loading dataset:", e);
     }
-    load();
-  }, [datasetId, storageKey, version]);
+  }
+  load();
+}, [datasetId, storageKey, version]);
 
   useEffect(() => {
     const slice = allEntities.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -465,7 +508,7 @@ export default function WebAlternatePage() {
         return;
       }
       localStorage.removeItem(storageKey);
-      router.back();
+      router.push(`/dataset/web-view/${datasetId}`);
     } catch {
       setDeleteError("Network error — could not reach server");
       setDeleting(false);

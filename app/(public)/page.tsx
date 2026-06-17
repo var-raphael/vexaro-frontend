@@ -20,11 +20,11 @@ const FREE_PLAN = {
   period: "/mo",
   desc: "For exploration and testing only.",
   features: [
-    "1 dataset",
-    "25 URLs per dataset",
+    "1 datasets",
+    "20 URLs per dataset",
     "10 Serper-discovered URLs per dataset",
     "Unlimited imported URLs (up to slot limit)",
-    "Manual refresh only",
+    "Nightly automatic refresh",
     "No ping URL or webhook",
     "Full diff viewer & one-click rollback",
     "Full marketplace access",
@@ -42,7 +42,7 @@ const STARTER_PLAN = {
   period: "/mo",
   desc: "For builders who need live, versioned web data without managing infrastructure.",
   features: [
-    "2 datasets",
+    "3 datasets",
     "50 URLs per dataset",
     "20 Serper-discovered URLs per dataset",
     "Unlimited imported URLs (up to slot limit)",

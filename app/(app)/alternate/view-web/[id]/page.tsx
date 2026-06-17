@@ -210,9 +210,6 @@ export default function AltViewWebPage() {
   return (
     <div className="max-w-6xl mx-auto px-5 md:px-8 py-10 space-y-6">
       {/* Header */}
-      <h1 className="text-2xl font-bold tracking-tight text-foreground font-mono">
-        {dataName || `Dataset ${datasetId}`}
-       </h1>
       <div>
         <button
           onClick={() => router.back()}
@@ -223,8 +220,8 @@ export default function AltViewWebPage() {
 
         <div className="flex items-center gap-2.5 flex-wrap">
           <h1 className="text-2xl font-bold tracking-tight text-foreground font-mono">
-            Alternate View
-          </h1>
+              {dataName ?? ""}
+            </h1>
           <span className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border text-purple-400 bg-purple-500/10 border-purple-500/20">
             <Sparkles size={10} /> alt
           </span>

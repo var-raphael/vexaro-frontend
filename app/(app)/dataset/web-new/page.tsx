@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,8 @@ import {
   Zap,
   XCircle,
   AlertTriangle,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { FaGlobe } from "react-icons/fa";
 import { cn } from "@/lib/utils";
@@ -39,6 +41,7 @@ interface SchemaField {
   id: number;
   type: string;
   description: string;
+  dataType: "string" | "number" | "boolean" | "array";
 }
 
 interface PipelinePayload extends Step1Form {
@@ -48,14 +51,18 @@ interface PipelinePayload extends Step1Form {
   urls: string;
 }
 
+interface ProgressLine {
+  detail: string;
+  done: boolean;
+}
+
 // ── URL classification ────────────────────────────────────────────────────────
 
 const HARD_BLOCKED = [
   "twitter.com", "x.com", "facebook.com", "instagram.com",
   "tiktok.com", "youtube.com", "youtu.be", "linkedin.com",
   "snapchat.com", "pinterest.com", "threads.net",
-  "reddit.com",
-  "old.reddit.com",
+  "reddit.com", "old.reddit.com",
 ];
 
 const SOFT_BLOCKED = [
@@ -123,19 +130,67 @@ function FieldError({ msg }: { msg?: string }) {
   );
 }
 
+// ── Progress Log ──────────────────────────────────────────────────────────────
+
+function ProgressLog({
+  lines,
+  phase,
+  errorMsg,
+}: {
+  lines: ProgressLine[];
+  phase: "running" | "done" | "error";
+  errorMsg: string | null;
+}) {
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [lines]);
+
+  return (
+    <div className="rounded-lg border border-border bg-accent/20 p-4 space-y-2 max-h-72 overflow-y-auto">
+      {lines.map((line, i) => {
+        const isLast = i === lines.length - 1;
+        const spinning = isLast && phase === "running";
+        return (
+          <div key={i} className="flex items-start gap-2">
+            {spinning ? (
+              <Loader2 size={13} className="text-primary animate-spin shrink-0 mt-0.5" />
+            ) : (
+              <CheckCircle2 size={13} className="text-primary shrink-0 mt-0.5" />
+            )}
+            <p className={cn(
+              "text-xs font-mono leading-relaxed",
+              spinning ? "text-foreground" : "text-muted-foreground"
+            )}>
+              {line.detail}
+            </p>
+          </div>
+        );
+      })}
+
+      {phase === "error" && errorMsg && (
+        <div className="flex items-start gap-2 pt-1">
+          <XCircle size={13} className="text-destructive shrink-0 mt-0.5" />
+          <p className="text-xs font-mono text-destructive leading-relaxed">{errorMsg}</p>
+        </div>
+      )}
+
+      <div ref={bottomRef} />
+    </div>
+  );
+}
+
 // ── Step 1 ────────────────────────────────────────────────────────────────────
 
-function Step1({ onNext }: { onNext: (data: Step1Form) => void }) {
-  const [form, setForm] = useState<Step1Form>({
-    name: "",
-    description: "",
-    tag: "",
-    visibility: "public",
-    nightly: "yes",
-  });
+function Step1({ form, onChange, onNext }: {
+  form: Step1Form;
+  onChange: (data: Step1Form) => void;
+  onNext: (data: Step1Form) => void;
+}) {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const set = (k: keyof Step1Form, v: string) => setForm((p) => ({ ...p, [k]: v }));
+  const set = (k: keyof Step1Form, v: string) => onChange({ ...form, [k]: v });
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -281,105 +336,111 @@ const EMOJI_RE = /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u;
 
 function Step2({
   meta,
+  form,
+  onChange,
   onRun,
-  submitting,
+  phase,
+  progressLines,
+  errorMsg,
 }: {
   meta: Step1Form;
+  form: {
+    intent: string;
+    extractIntent: string;
+    schema: SchemaField[];
+    urls: string;
+  };
+  onChange: (data: { intent: string; extractIntent: string; schema: SchemaField[]; urls: string }) => void;
   onRun: (data: PipelinePayload) => Promise<void>;
-  submitting: boolean;
+  phase: "idle" | "running" | "done" | "error";
+  progressLines: ProgressLine[];
+  errorMsg: string | null;
 }) {
-  const [intent, setIntent] = useState("");
-  const [extractIntent, setExtractIntent] = useState("");
-  const [schema, setSchema] = useState<SchemaField[]>([{ id: Date.now(), type: "", description: "" }]);
-  const [urls, setUrls] = useState("");
   const [urlAnalysis, setUrlAnalysis] = useState<URLAnalysis>({ hardBlocked: [], softBlocked: [], clean: [] });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    setUrlAnalysis(analyzeURLs(urls));
-  }, [urls]);
+  const setIntent = (v: string) => onChange({ ...form, intent: v });
+  const setExtractIntent = (v: string) => onChange({ ...form, extractIntent: v });
+  const setUrls = (v: string) => onChange({ ...form, urls: v });
+  const setSchema = (fn: (prev: SchemaField[]) => SchemaField[]) =>
+    onChange({ ...form, schema: fn(form.schema) });
 
-  const addField = () => setSchema((p) => [...p, { id: Date.now(), type: "", description: "" }]);
+  useEffect(() => {
+    setUrlAnalysis(analyzeURLs(form.urls));
+  }, [form.urls]);
+
+  const addField = () => setSchema((p) => [...p, { id: Date.now(), type: "", description: "", dataType: "string" as const }]);
   const removeField = (id: number) => setSchema((p) => (p.length > 1 ? p.filter((f) => f.id !== id) : p));
   const updateField = (id: number, key: keyof Omit<SchemaField, "id">, val: string) =>
     setSchema((p) => p.map((f) => (f.id === id ? { ...f, [key]: val } : f)));
 
-  // Replace the validate function in Step2
-const validate = () => {
-  const e: Record<string, string> = {};
+  const validate = () => {
+    const e: Record<string, string> = {};
+    const hasSerpIntent = form.intent.trim().length > 0;
+    const hasImportURLs = urlAnalysis.clean.length > 0;
 
-  const hasSerpIntent = intent.trim().length > 0;
-  const hasImportURLs = urlAnalysis.clean.length > 0;
+    if (!hasSerpIntent && !hasImportURLs) {
+      e.intent = "Provide a SERP intent, import URLs, or both";
+    }
+    if (hasSerpIntent && form.intent.trim().length < 20) {
+      e.intent = `SERP intent minimum 20 characters (${form.intent.trim().length}/20)`;
+    }
+    if (hasSerpIntent && EMOJI_RE.test(form.intent)) {
+      e.intent = "Emojis are not allowed in the SERP intent";
+    }
+    if (form.extractIntent.trim().length < 20) {
+      e.extractIntent = `Minimum 20 characters (${form.extractIntent.trim().length}/20)`;
+    }
+    if (EMOJI_RE.test(form.extractIntent)) {
+      e.extractIntent = "Emojis are not allowed in the extract intent";
+    }
+    if (form.schema.some((f) => !f.type.trim() || !f.description.trim())) {
+      e.schema = "All schema fields must have a type and description";
+    }
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
 
-  if (!hasSerpIntent && !hasImportURLs) {
-    e.intent = "Provide a SERP intent, import URLs, or both";
-  }
-
-  if (hasSerpIntent && intent.trim().length < 20) {
-    e.intent = `SERP intent minimum 20 characters (${intent.trim().length}/20)`;
-  }
-
-  if (hasSerpIntent && EMOJI_RE.test(intent)) {
-    e.intent = "Emojis are not allowed in the SERP intent";
-  }
-
-  if (extractIntent.trim().length < 20) {
-    e.extractIntent = `Minimum 20 characters (${extractIntent.trim().length}/20)`;
-  }
-
-  if (EMOJI_RE.test(extractIntent)) {
-    e.extractIntent = "Emojis are not allowed in the extract intent";
-  }
-
-  if (schema.some((f) => !f.type.trim() || !f.description.trim())) {
-    e.schema = "All schema fields must have a type and description";
-  }
-
-  setErrors(e);
-  return Object.keys(e).length === 0;
-};
-
-  const intentLen = intent.trim().length;
-  const extractIntentLen = extractIntent.trim().length;
-
-  // Build clean urls string for submission
+  const intentLen = form.intent.trim().length;
+  const extractIntentLen = form.extractIntent.trim().length;
   const cleanURLsString = urlAnalysis.clean.join("\n");
+  const submitting = phase === "running";
 
   return (
     <div className="space-y-6">
 
       {/* SERP Intent */}
-      {/* SERP Intent */}
-<div>
-  <Label>SERP Intent</Label>
-  <p className="text-[11px] text-muted-foreground mb-1">
-    Optional. Used to discover URLs via search engines. Leave empty if importing your own URLs. Min 20 characters if provided.
-  </p>
-  <div className="flex items-center gap-1.5 mb-2 px-2.5 py-1.5 rounded-md bg-primary/5 border border-primary/20">
-    <Zap size={11} className="text-primary shrink-0" />
-    <p className="text-[11px] text-primary/80 leading-relaxed">
-      Keep this concise and search-friendly — think of it as what you'd type into Google.
-    </p>
-  </div>
-  <Textarea
-    value={intent}
-    onChange={(e) => setIntent(e.target.value)}
-    placeholder="e.g. top AI startups 2025 funding rounds"
-    rows={3}
-    className={cn(
-      "bg-accent/30 border-border text-foreground placeholder:text-muted-foreground text-sm resize-none focus-visible:ring-primary/40 focus-visible:border-primary/50",
-      errors.intent && "border-destructive focus-visible:border-destructive"
-    )}
-  />
-  <div className="flex items-center justify-between mt-1">
-    <FieldError msg={errors.intent} />
-    {intent.trim().length > 0 && (
-      <span className={cn("text-[11px] font-mono ml-auto", intentLen >= 20 ? "text-primary" : "text-muted-foreground")}>
-        {intentLen} {intentLen < 20 ? "/ 20 min" : "chars"}
-      </span>
-    )}
-  </div>
-</div>
+      <div>
+        <Label>SERP Intent</Label>
+        <p className="text-[11px] text-muted-foreground mb-1">
+          Optional. Used to discover URLs via search engines. Leave empty if importing your own URLs. Min 20 characters if provided.
+        </p>
+        <div className="flex items-center gap-1.5 mb-2 px-2.5 py-1.5 rounded-md bg-primary/5 border border-primary/20">
+          <Zap size={11} className="text-primary shrink-0" />
+          <p className="text-[11px] text-primary/80 leading-relaxed">
+            Keep this concise and search-friendly — think of it as what you'd type into Google.
+          </p>
+        </div>
+        <Textarea
+          value={form.intent}
+          onChange={(e) => setIntent(e.target.value)}
+          placeholder="e.g. top AI startups 2025 funding rounds"
+          rows={3}
+          disabled={submitting}
+          className={cn(
+            "bg-accent/30 border-border text-foreground placeholder:text-muted-foreground text-sm resize-none focus-visible:ring-primary/40 focus-visible:border-primary/50 disabled:opacity-50",
+            errors.intent && "border-destructive focus-visible:border-destructive"
+          )}
+        />
+        <div className="flex items-center justify-between mt-1">
+          <FieldError msg={errors.intent} />
+          {form.intent.trim().length > 0 && (
+            <span className={cn("text-[11px] font-mono ml-auto", intentLen >= 20 ? "text-primary" : "text-muted-foreground")}>
+              {intentLen} {intentLen < 20 ? "/ 20 min" : "chars"}
+            </span>
+          )}
+        </div>
+      </div>
 
       {/* Extract Intent */}
       <div>
@@ -392,12 +453,13 @@ const validate = () => {
           </p>
         </div>
         <Textarea
-          value={extractIntent}
+          value={form.extractIntent}
           onChange={(e) => setExtractIntent(e.target.value)}
           placeholder={`e.g. Extract AI startup companies that raised funding in 2025. For each company capture the name, funding amount, funding round (Seed/Series A etc), lead investor, and a one sentence description of what the company does. Only include companies with confirmed funding announcements, ignore speculation or rumours.`}
           rows={6}
+          disabled={submitting}
           className={cn(
-            "bg-accent/30 border-border text-foreground placeholder:text-muted-foreground text-sm resize-none focus-visible:ring-primary/40 focus-visible:border-primary/50",
+            "bg-accent/30 border-border text-foreground placeholder:text-muted-foreground text-sm resize-none focus-visible:ring-primary/40 focus-visible:border-primary/50 disabled:opacity-50",
             errors.extractIntent && "border-destructive focus-visible:border-destructive"
           )}
         />
@@ -416,25 +478,40 @@ const validate = () => {
           <button
             type="button"
             onClick={addField}
-            className="flex items-center gap-1 text-[11px] font-mono text-primary hover:text-primary/80 transition-colors border border-primary/30 hover:border-primary/60 rounded-md px-2 py-1 bg-primary/5"
+            disabled={submitting}
+            className="flex items-center gap-1 text-[11px] font-mono text-primary hover:text-primary/80 transition-colors border border-primary/30 hover:border-primary/60 rounded-md px-2 py-1 bg-primary/5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus size={11} /> Add Field
           </button>
         </div>
         <div className="space-y-2">
-          {schema.map((field) => (
+          {form.schema.map((field) => (
             <div
               key={field.id}
-              className="group grid grid-cols-[1fr_1fr_auto] gap-2 p-3 rounded-lg bg-accent/20 border border-border hover:border-primary/20 transition-colors"
+              className="group flex flex-col gap-2 p-3 rounded-lg bg-accent/20 border border-border hover:border-primary/20 transition-colors md:grid md:grid-cols-[1fr_140px_1fr_auto]"
             >
               <div>
-                <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">Type</p>
+                <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">Field Name</p>
                 <Input
                   value={field.type}
                   onChange={(e) => updateField(field.id, "type", e.target.value)}
                   placeholder="e.g. title"
-                  className="h-8 bg-card border-border text-foreground placeholder:text-muted-foreground font-mono text-xs focus-visible:ring-primary/40 focus-visible:border-primary/50"
+                  disabled={submitting}
+                  className="h-8 bg-card border-border text-foreground placeholder:text-muted-foreground font-mono text-xs focus-visible:ring-primary/40 focus-visible:border-primary/50 disabled:opacity-50"
                 />
+              </div>
+              <div>
+                <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">Data Type</p>
+                <select
+                  value={field.dataType}
+                  onChange={(e) => updateField(field.id, "dataType", e.target.value)}
+                  disabled={submitting}
+                  className="h-8 w-full rounded-md border border-border bg-card text-foreground text-xs font-mono px-2 focus:outline-none focus:ring-1 focus:ring-primary/40 disabled:opacity-50"
+                >
+                  {["string", "number", "boolean", "array"].map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">Description</p>
@@ -442,14 +519,15 @@ const validate = () => {
                   value={field.description}
                   onChange={(e) => updateField(field.id, "description", e.target.value)}
                   placeholder="What to extract"
-                  className="h-8 bg-card border-border text-foreground placeholder:text-muted-foreground text-xs focus-visible:ring-primary/40 focus-visible:border-primary/50"
+                  disabled={submitting}
+                  className="h-8 bg-card border-border text-foreground placeholder:text-muted-foreground text-xs focus-visible:ring-primary/40 focus-visible:border-primary/50 disabled:opacity-50"
                 />
               </div>
               <div className="flex items-end">
                 <button
                   type="button"
                   onClick={() => removeField(field.id)}
-                  disabled={schema.length === 1}
+                  disabled={form.schema.length === 1 || submitting}
                   className="h-8 w-8 flex items-center justify-center rounded-md border border-border text-muted-foreground hover:border-destructive/50 hover:text-destructive transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <Trash2 size={12} />
@@ -466,17 +544,17 @@ const validate = () => {
         <Label>Import URLs</Label>
         <p className="text-[11px] text-muted-foreground mb-2">One URL per line. Optional.</p>
         <Textarea
-          value={urls}
+          value={form.urls}
           onChange={(e) => setUrls(e.target.value)}
           placeholder={"https://example.com/page-1\nhttps://example.com/page-2"}
           rows={5}
+          disabled={submitting}
           className={cn(
-            "bg-accent/30 border-border text-foreground placeholder:text-muted-foreground font-mono text-xs resize-none focus-visible:ring-primary/40 focus-visible:border-primary/50",
+            "bg-accent/30 border-border text-foreground placeholder:text-muted-foreground font-mono text-xs resize-none focus-visible:ring-primary/40 focus-visible:border-primary/50 disabled:opacity-50",
             urlAnalysis.hardBlocked.length > 0 && "border-destructive/50"
           )}
         />
 
-        {/* Hard blocked */}
         {urlAnalysis.hardBlocked.length > 0 && (
           <div className="mt-2 px-3 py-2.5 rounded-md border border-destructive/30 bg-destructive/5 space-y-1">
             <div className="flex items-center gap-1.5">
@@ -493,15 +571,14 @@ const validate = () => {
           </div>
         )}
 
-        {/* Soft blocked */}
         {urlAnalysis.softBlocked.length > 0 && (
           <div className="mt-2 px-3 py-2.5 rounded-md border border-yellow-500/30 bg-yellow-500/5 space-y-1">
             <div className="flex items-center gap-1.5">
               <AlertTriangle size={11} className="text-yellow-500 shrink-0" />
-                  <p className="text-[11px] font-medium text-yellow-500">
-                    {urlAnalysis.softBlocked.length} URL{urlAnalysis.softBlocked.length > 1 ? "s" : ""} — Amazon URLs must use the Amazon pipeline.
-                    </p>
-               </div>
+              <p className="text-[11px] font-medium text-yellow-500">
+                {urlAnalysis.softBlocked.length} URL{urlAnalysis.softBlocked.length > 1 ? "s" : ""} — Amazon URLs must use the Amazon pipeline.
+              </p>
+            </div>
             <div className="space-y-0.5 pl-4">
               {urlAnalysis.softBlocked.map(({ url, label }) => (
                 <p key={url} className="text-[10px] font-mono text-yellow-500/70 truncate">
@@ -512,7 +589,6 @@ const validate = () => {
           </div>
         )}
 
-        {/* Clean count */}
         {urlAnalysis.clean.length > 0 && (
           <p className="text-[11px] text-muted-foreground mt-1.5">
             {urlAnalysis.clean.length} URL{urlAnalysis.clean.length > 1 ? "s" : ""} queued for processing
@@ -520,12 +596,33 @@ const validate = () => {
         )}
       </div>
 
+      {/* Progress log */}
+      {phase !== "idle" && (
+        <ProgressLog
+          lines={progressLines}
+          phase={phase === "idle" ? "running" : phase}
+          errorMsg={errorMsg}
+        />
+      )}
+
+      {phase === "error" && (
+        <p className="text-[11px] text-muted-foreground text-center">
+          You can edit your settings above and try again.
+        </p>
+      )}
+
       <Button
-        onClick={() => { if (validate()) onRun({ ...meta, intent, extractIntent, schema, urls: cleanURLsString }); }}
-        disabled={submitting}
+        onClick={() => { if (validate()) onRun({ ...meta, intent: form.intent, extractIntent: form.extractIntent, schema: form.schema, urls: cleanURLsString }); }}
+        disabled={submitting || phase === "done"}
         className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-xs tracking-widest uppercase gap-2 disabled:opacity-60"
       >
-        <Play size={13} /> {submitting ? "Queuing..." : "Run Pipeline"}
+        {submitting ? (
+          <><Loader2 size={13} className="animate-spin" /> Running...</>
+        ) : phase === "done" ? (
+          <><CheckCircle2 size={13} /> Done</>
+        ) : (
+          <><Play size={13} /> Run Pipeline</>
+        )}
       </Button>
     </div>
   );
@@ -533,7 +630,7 @@ const validate = () => {
 
 // ── Step Indicator ─────────────────────────────────────────────────────────────
 
-function StepIndicator({ step }: { step: number }) {
+function StepIndicator({ step, onStepClick }: { step: number; onStepClick: (n: number) => void }) {
   return (
     <div className="flex items-center gap-2 mb-8">
       {[
@@ -542,16 +639,20 @@ function StepIndicator({ step }: { step: number }) {
       ].map(({ n, label }, i) => (
         <div key={n} className="flex items-center gap-2">
           <div className="flex items-center gap-2">
-            <div className={cn(
-              "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-mono font-bold border transition-all",
-              step === n
-                ? "bg-primary border-primary text-primary-foreground"
-                : step > n
-                ? "bg-primary/20 border-primary/40 text-primary"
-                : "bg-accent border-border text-muted-foreground"
-            )}>
+            <button
+              type="button"
+              onClick={() => onStepClick(n)}
+              className={cn(
+                "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-mono font-bold border transition-all",
+                step === n
+                  ? "bg-primary border-primary text-primary-foreground"
+                  : step > n
+                  ? "bg-primary/20 border-primary/40 text-primary cursor-pointer hover:bg-primary/30"
+                  : "bg-accent border-border text-muted-foreground cursor-not-allowed opacity-50"
+              )}
+            >
               {n}
-            </div>
+            </button>
             <span className={cn("text-xs font-mono", step === n ? "text-foreground" : "text-muted-foreground")}>
               {label}
             </span>
@@ -569,33 +670,105 @@ export default function CreateDatasetPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
+  const [step1Form, setStep1Form] = useState<Step1Form>({
+    name: "",
+    description: "",
+    tag: "",
+    visibility: "public",
+    nightly: "no",
+  });
+  const [step2Form, setStep2Form] = useState({
+  intent: "",
+  extractIntent: "",
+  schema: [{ id: Date.now(), type: "", description: "", dataType: "string" as const }],
+  urls: "",
+  });
   const [meta, setMeta] = useState<Step1Form | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [phase, setPhase] = useState<"idle" | "running" | "done" | "error">("idle");
+  const [progressLines, setProgressLines] = useState<ProgressLine[]>([]);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleNext = (data: Step1Form) => {
     setMeta(data);
     setStep(2);
   };
 
+  const handleStepClick = (n: number) => {
+    if (n === 1) setStep(1);
+    if (n === 2 && meta !== null) setStep(2);
+  };
+
+  const addLine = (detail: string) => {
+    setProgressLines((prev) => {
+      const updated = prev.map((l, i) =>
+        i === prev.length - 1 ? { ...l, done: true } : l
+      );
+      return [...updated, { detail, done: false }];
+    });
+  };
+
   const handleRun = async (full: PipelinePayload) => {
-    setSubmitting(true);
-    setSubmitError(null);
+    setPhase("running");
+    setProgressLines([]);
+    setErrorMsg(null);
+
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/queue`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: user?.id, ...full }),
       });
-      if (!res.ok) {
+
+      if (!res.ok || !res.body) {
         const text = await res.text();
         throw new Error(`Server error ${res.status}: ${text}`);
       }
-      router.push("/dashboard");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() ?? "";
+
+        for (const part of parts) {
+          const lines = part.split("\n");
+          let event = "message";
+          let data = "";
+
+          for (const line of lines) {
+            if (line.startsWith("event: ")) event = line.slice(7).trim();
+            if (line.startsWith("data: ")) data = line.slice(6).trim();
+          }
+
+          if (!data) continue;
+
+          if (event === "progress") {
+            const parsed = JSON.parse(data);
+            addLine(parsed.detail);
+          } else if (event === "done") {
+            setProgressLines((prev) =>
+              prev.map((l, i) => (i === prev.length - 1 ? { ...l, done: true } : l))
+            );
+            setPhase("done");
+            setTimeout(() => {
+              router.push("/dashboard");
+            }, 1200);
+          } else if (event === "error") {
+            const parsed = JSON.parse(data);
+            setErrorMsg(parsed.message);
+            setPhase("error");
+          }
+        }
+      }
     } catch (err: any) {
-      setSubmitError(err.message ?? "Something went wrong. Please try again.");
-    } finally {
-      setSubmitting(false);
+      setErrorMsg("Something went wrong. Please try again.");
+      setPhase("error");
     }
   };
 
@@ -603,27 +776,37 @@ export default function CreateDatasetPage() {
     <div className="max-w-2xl mx-auto px-5 md:px-8 py-10">
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-1">
-           <FaGlobe size={14} className="text-primary" />
-           <p className="text-xs font-mono text-muted-foreground tracking-widest uppercase">Web Pipeline</p>
-              </div>
+          <FaGlobe size={14} className="text-primary" />
+          <p className="text-xs font-mono text-muted-foreground tracking-widest uppercase">Web Pipeline</p>
+        </div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-1">
-  Create <span className="text-primary">Web</span> Dataset
+          Create <span className="text-primary">Web</span> Dataset
         </h1>
         <p className="text-sm text-muted-foreground">Configure your dataset and define the extraction pipeline.</p>
       </div>
 
-      <StepIndicator step={step} />
-
-      {submitError && (
-        <div className="mb-4 flex items-center gap-2 px-3 py-2.5 rounded-lg border border-destructive/40 bg-destructive/10 text-destructive text-xs">
-          <AlertCircle size={13} /> {submitError}
-        </div>
-      )}
+      <StepIndicator step={step} onStepClick={handleStepClick} />
 
       <Card className="bg-card border-border">
         <CardContent className="p-6">
-          {step === 1 && <Step1 onNext={handleNext} />}
-          {step === 2 && <Step2 meta={meta!} onRun={handleRun} submitting={submitting} />}
+          {step === 1 && (
+            <Step1
+              form={step1Form}
+              onChange={setStep1Form}
+              onNext={handleNext}
+            />
+          )}
+          {step === 2 && (
+  <Step2
+    meta={meta!}
+    form={step2Form}
+    onChange={setStep2Form}
+    onRun={handleRun}
+    phase={phase}
+    progressLines={progressLines}
+    errorMsg={errorMsg}
+  />
+)}
         </CardContent>
       </Card>
     </div>

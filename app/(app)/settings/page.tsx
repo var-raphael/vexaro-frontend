@@ -1,32 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  Key, Plus, Eye, EyeOff, Copy, Trash2,
-  User, Lock, CreditCard, AlertTriangle, Upload,
+  User, Zap, CreditCard, Copy, Check,
+  RefreshCw, Eye, EyeOff, Loader2, ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { AuthGuard } from "@/components/auth/auth-guard";
 
-// ── Mock user — replace with session ─────────────────────────────────────────
-
-const MOCK_USER = {
-  name: "Raphael Samuel",
-  email: "raphael@vexaro.dev",
-  avatar: "",
-  plan: "Free" as "Free" | "Pro" | "Business" | "Custom",
-};
-
-const PLAN_DETAILS = {
-  Free:     { price: "$0/mo",  requests: "100/day",    endpoints: "1 custom (7-day trial)" },
-  Pro:      { price: "$9/mo",  requests: "10,000/day", endpoints: "5 custom" },
-  Business: { price: "$19/mo", requests: "50,000/day", endpoints: "12 custom" },
-  Custom:   { price: "Custom", requests: "Unlimited",  endpoints: "Unlimited" },
-};
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 // ── Section wrapper ───────────────────────────────────────────────────────────
 
@@ -57,270 +43,292 @@ function Section({
   );
 }
 
-// ── Profile ───────────────────────────────────────────────────────────────────
+// ── Bio ───────────────────────────────────────────────────────────────────────
 
-function ProfileSection() {
-  const [name, setName] = useState(MOCK_USER.name);
-  const [email, setEmail] = useState(MOCK_USER.email);
-  const initials = name.split(" ").map((n) => n[0]).join("").toUpperCase();
+function BioSection() {
+  const { user } = useAuth();
+  const [bio, setBio] = useState(user?.bio ?? "");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const initials = user?.name
+    ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase()
+    : "?";
+
+  async function handleSave() {
+    if (!user?.id) return;
+    setSaving(true);
+    try {
+      await fetch(`${API}/profile/update`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: user.id, bio }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error("[bio] save error:", err);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
-    <Section id="profile" icon={User} title="Profile" desc="Update your name, email, and avatar.">
+    <Section id="profile" icon={User} title="Profile" desc="Your public profile info.">
       <div className="flex items-center gap-4 mb-6">
         <Avatar className="w-14 h-14 border border-border">
-          <AvatarImage src={MOCK_USER.avatar} />
-          <AvatarFallback className="bg-accent text-primary text-lg font-semibold">{initials}</AvatarFallback>
+          <AvatarImage src={user?.avatar ?? ""} alt={user?.name ?? ""} />
+          <AvatarFallback className="bg-accent text-primary text-lg font-semibold">
+            {initials}
+          </AvatarFallback>
         </Avatar>
-        <Button variant="outline" size="sm" className="border-border hover:border-primary hover:text-primary bg-transparent text-xs gap-2">
-          <Upload size={13} /> Upload Avatar
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        <div className="space-y-1.5">
-          <label className="text-xs text-muted-foreground">Full Name</label>
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="bg-background border-border focus:border-primary text-sm"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs text-muted-foreground">Email Address</label>
-          <Input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="bg-background border-border focus:border-primary text-sm"
-          />
+        <div>
+          <p className="text-sm font-medium text-foreground">{user?.name}</p>
+          <p className="text-xs text-muted-foreground">{user?.email}</p>
+          {user?.username && (
+            <p className="text-xs text-primary font-mono mt-0.5">@{user.username}</p>
+          )}
         </div>
       </div>
 
-      <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs">
-        Save Changes
+      <div className="space-y-1.5 mb-5 max-w-lg">
+        <label className="text-xs text-muted-foreground font-medium">Bio</label>
+        <textarea
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
+          maxLength={500}
+          rows={4}
+          placeholder="Tell others what you build with Vexaro..."
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+        />
+        <p className="text-[11px] text-muted-foreground/50 text-right">{bio.length}/500</p>
+      </div>
+
+      <Button
+        size="sm"
+        onClick={handleSave}
+        disabled={saving}
+        className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs gap-2"
+      >
+        {saving
+          ? <><Loader2 size={12} className="animate-spin" /> Saving...</>
+          : saved
+          ? <><Check size={12} className="text-emerald-400" /> Saved</>
+          : "Save Bio"
+        }
       </Button>
     </Section>
   );
 }
 
-// ── Password ──────────────────────────────────────────────────────────────────
+// ── MCP ───────────────────────────────────────────────────────────────────────
 
-function PasswordSection() {
-  const [current, setCurrent] = useState("");
-  const [next, setNext] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNext, setShowNext] = useState(false);
+function MCPSection() {
+  const { user } = useAuth();
+  const [token, setToken] = useState<string | null>(null);
+  const [hasToken, setHasToken] = useState(false);
+  const [lastUsed, setLastUsed] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+  const [copied, setCopied] = useState<"token" | "url" | null>(null);
+
+  const mcpURL = token
+    ? `${API}/mcp/${token}/sse`
+    : null;
+
+  useEffect(() => {
+    if (!user?.id) return;
+    async function fetchToken() {
+      try {
+        const res = await fetch(`${API}/mcp/token/view?user_id=${user!.id}`);
+        const data = await res.json();
+        if (data.has_token && data.is_active) {
+          setToken(data.token);
+          setHasToken(true);
+          if (data.last_used_at) setLastUsed(data.last_used_at);
+        }
+      } catch (err) {
+        console.error("[mcp] fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchToken();
+  }, [user?.id]);
+
+  async function handleGenerate() {
+    if (!user?.id) return;
+    setGenerating(true);
+    try {
+      const res = await fetch(`${API}/mcp/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: user.id }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setToken(data.token);
+        setHasToken(true);
+        setRevealed(true);
+      }
+    } catch (err) {
+      console.error("[mcp] generate error:", err);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  function copy(type: "token" | "url") {
+    const val = type === "token" ? token : mcpURL;
+    if (!val) return;
+    navigator.clipboard.writeText(val);
+    setCopied(type);
+    setTimeout(() => setCopied(null), 2000);
+  }
+
+  const maskedToken = token
+    ? token.slice(0, 8) + "••••••••••••••••••••••••"
+    : null;
 
   return (
-    <Section id="password" icon={Lock} title="Change Password" desc="Use a strong password you don't use elsewhere.">
-      <div className="space-y-4 max-w-sm">
-        {/* Current */}
-        <div className="space-y-1.5">
-          <label className="text-xs text-muted-foreground">Current Password</label>
-          <div className="relative">
-            <Input
-              type={showCurrent ? "text" : "password"}
-              value={current}
-              onChange={(e) => setCurrent(e.target.value)}
-              className="bg-background border-border focus:border-primary text-sm pr-10"
-            />
-            <button
-              onClick={() => setShowCurrent((p) => !p)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              {showCurrent ? <EyeOff size={14} /> : <Eye size={14} />}
-            </button>
-          </div>
+    <Section id="mcp" icon={Zap} title="MCP Access" desc="Connect AI tools like Claude Desktop and Cursor to your datasets.">
+      {loading ? (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 size={13} className="animate-spin" /> Loading...
         </div>
-
-        {/* New */}
-        <div className="space-y-1.5">
-          <label className="text-xs text-muted-foreground">New Password</label>
-          <div className="relative">
-            <Input
-              type={showNext ? "text" : "password"}
-              value={next}
-              onChange={(e) => setNext(e.target.value)}
-              className="bg-background border-border focus:border-primary text-sm pr-10"
-            />
-            <button
-              onClick={() => setShowNext((p) => !p)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              {showNext ? <EyeOff size={14} /> : <Eye size={14} />}
-            </button>
-          </div>
-        </div>
-
-        {/* Confirm */}
-        <div className="space-y-1.5">
-          <label className="text-xs text-muted-foreground">Confirm New Password</label>
-          <Input
-            type="password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            className={cn(
-              "bg-background border-border focus:border-primary text-sm",
-              confirm && next !== confirm && "border-red-500/50 focus:border-red-500"
-            )}
-          />
-          {confirm && next !== confirm && (
-            <p className="text-xs text-red-400">Passwords do not match.</p>
-          )}
-        </div>
-
-        <Button
-          size="sm"
-          disabled={!current || !next || next !== confirm}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs disabled:opacity-40"
-        >
-          Update Password
-        </Button>
-      </div>
-    </Section>
-  );
-}
-
-// ── API Tokens ────────────────────────────────────────────────────────────────
-
-interface Token { id: string; name: string; token: string; created: string; }
-
-const MOCK_TOKENS: Token[] = [
-  { id: "1", name: "Production", token: "vx_prod_a1b2c3d4e5f6", created: "Mar 12, 2025" },
-  { id: "2", name: "Development", token: "vx_dev_9z8y7x6w5v4", created: "Apr 1, 2025" },
-];
-
-function TokensSection() {
-  const [tokens, setTokens] = useState<Token[]>(MOCK_TOKENS);
-  const [revealed, setRevealed] = useState<string[]>([]);
-  const [newName, setNewName] = useState("");
-  const [creating, setCreating] = useState(false);
-
-  function toggleReveal(id: string) {
-    setRevealed((p) => p.includes(id) ? p.filter((i) => i !== id) : [...p, id]);
-  }
-
-  function copyToken(token: string) {
-    navigator.clipboard.writeText(token);
-  }
-
-  function revokeToken(id: string) {
-    setTokens((p) => p.filter((t) => t.id !== id));
-  }
-
-  function createToken() {
-    if (!newName.trim()) return;
-    const fake: Token = {
-      id: String(Date.now()),
-      name: newName.trim(),
-      token: `vx_${Math.random().toString(36).slice(2, 14)}`,
-      created: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-    };
-    setTokens((p) => [...p, fake]);
-    setNewName("");
-    setCreating(false);
-  }
-
-  return (
-    <Section id="tokens" icon={Key} title="API Tokens" desc="Manage your vx_ tokens for authenticating API requests.">
-      <div className="space-y-3 mb-5">
-        {tokens.length === 0 && (
-          <p className="text-xs text-muted-foreground">No tokens yet. Create one below.</p>
-        )}
-        {tokens.map((t) => (
-          <div key={t.id} className="flex items-center gap-3 p-3 rounded-lg bg-background border border-border group">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-foreground mb-0.5">{t.name}</p>
-              <p className="text-xs font-mono text-muted-foreground truncate">
-                {revealed.includes(t.id) ? t.token : t.token.slice(0, 8) + "••••••••••••"}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">Created {t.created}</p>
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={() => toggleReveal(t.id)}
-                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                title={revealed.includes(t.id) ? "Hide" : "Reveal"}
-              >
-                {revealed.includes(t.id) ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-              <button
-                onClick={() => copyToken(t.token)}
-                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                title="Copy token"
-              >
-                <Copy size={14} />
-              </button>
-              <button
-                onClick={() => revokeToken(t.id)}
-                className="p-1.5 rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                title="Revoke token"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {creating ? (
-        <div className="flex items-center gap-2">
-          <Input
-            placeholder="Token name e.g. Production"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && createToken()}
-            className="bg-background border-border focus:border-primary text-sm max-w-xs"
-            autoFocus
-          />
-          <Button size="sm" onClick={createToken} className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs">
-            Create
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => setCreating(false)} className="border-border bg-transparent text-xs">
-            Cancel
+      ) : !hasToken ? (
+        <div className="space-y-4">
+          <p className="text-xs text-muted-foreground leading-relaxed max-w-md">
+            Generate an MCP token to connect your Vexaro datasets to any MCP-compatible AI client. Your token authenticates all dataset access over the MCP protocol.
+          </p>
+          <Button
+            size="sm"
+            onClick={handleGenerate}
+            disabled={generating}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs gap-2"
+          >
+            {generating
+              ? <><Loader2 size={12} className="animate-spin" /> Generating...</>
+              : <><Zap size={12} /> Generate MCP Token</>
+            }
           </Button>
         </div>
       ) : (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setCreating(true)}
-          className="border-border hover:border-primary hover:text-primary bg-transparent text-xs gap-2"
-        >
-          <Plus size={13} /> New Token
-        </Button>
+        <div className="space-y-5">
+          {/* Token row */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground font-medium">Token</label>
+            <div className="flex items-center gap-2 p-3 rounded-md bg-background border border-border">
+              <p className="text-xs font-mono text-foreground flex-1 truncate">
+                {revealed ? token : maskedToken}
+              </p>
+              <button
+                onClick={() => setRevealed((p) => !p)}
+                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {revealed ? <EyeOff size={13} /> : <Eye size={13} />}
+              </button>
+              <button
+                onClick={() => copy("token")}
+                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {copied === "token"
+                  ? <Check size={13} className="text-emerald-400" />
+                  : <Copy size={13} />
+                }
+              </button>
+            </div>
+          </div>
+
+          {/* MCP URL */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground font-medium">MCP Server URL</label>
+            <div className="flex items-center gap-2 p-3 rounded-md bg-background border border-border">
+              <p className="text-xs font-mono text-muted-foreground flex-1 truncate">
+                {mcpURL}
+              </p>
+              <button
+                onClick={() => copy("url")}
+                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {copied === "url"
+                  ? <Check size={13} className="text-emerald-400" />
+                  : <Copy size={13} />
+                }
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Paste this URL into your MCP client (Claude Desktop, Cursor, etc.)
+            </p>
+          </div>
+
+          {lastUsed && (
+            <p className="text-[11px] text-muted-foreground">
+              Last used: {new Date(lastUsed).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+            </p>
+          )}
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleGenerate}
+              disabled={generating}
+              className="border-border hover:border-primary hover:text-primary bg-transparent text-xs gap-2"
+            >
+              {generating
+                ? <><Loader2 size={12} className="animate-spin" /> Regenerating...</>
+                : <><RefreshCw size={12} /> Regenerate Token</>
+              }
+            </Button>
+            <a
+              href="https://docs.vexaro.com/mcp"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ExternalLink size={11} /> MCP docs
+            </a>
+          </div>
+
+          <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-md bg-yellow-500/5 border border-yellow-500/20">
+            <p className="text-[11px] text-yellow-400/80 leading-relaxed">
+              Regenerating invalidates your current token immediately. Update your MCP client after regenerating.
+            </p>
+          </div>
+        </div>
       )}
     </Section>
   );
 }
 
-// ── Plan & Billing ────────────────────────────────────────────────────────────
+// ── Plan ──────────────────────────────────────────────────────────────────────
 
-function BillingSection() {
-  const plan = MOCK_USER.plan;
-  const details = PLAN_DETAILS[plan];
-
+function PlanSection() {
   return (
-    <Section id="billing" icon={CreditCard} title="Plan & Billing" desc="Your current plan and usage limits.">
-      <div className="flex items-center justify-between gap-4 p-4 rounded-lg bg-accent/10 border border-primary/20 mb-5">
+    <Section id="plan" icon={CreditCard} title="Plan & Billing" desc="Your current plan and usage limits.">
+      <div className="flex items-center justify-between gap-4 p-4 rounded-lg bg-accent/10 border border-border mb-5">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <p className="text-sm font-semibold text-foreground">{plan} Plan</p>
+            <p className="text-sm font-semibold text-foreground">Free Plan</p>
             <span className="text-xs font-mono text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full">
               Active
             </span>
+            <span className="text-xs font-mono text-muted-foreground bg-accent border border-border px-2 py-0.5 rounded-full">
+              Paid plans coming soon
+            </span>
           </div>
-          <p className="text-xs text-muted-foreground">{details.price}</p>
+          <p className="text-xs text-muted-foreground">$0/mo</p>
         </div>
-        <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs shrink-0">
-          Upgrade Plan
-        </Button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {[
-          { label: "API Requests", value: details.requests },
-          { label: "Custom Endpoints", value: details.endpoints },
+          { label: "API Requests", value: "100/day" },
+          { label: "Datasets", value: "3 active" },
+          { label: "Nightly Refreshes", value: "1 dataset" },
+          { label: "MCP Access", value: "Included" },
         ].map(({ label, value }) => (
           <div key={label} className="p-3 rounded-lg bg-background border border-border">
             <p className="text-xs text-muted-foreground mb-1">{label}</p>
@@ -332,107 +340,21 @@ function BillingSection() {
   );
 }
 
-// ── Danger Zone ───────────────────────────────────────────────────────────────
-
-function DangerSection() {
-  const [open, setOpen] = useState(false);
-  const [confirm, setConfirm] = useState("");
-
-  return (
-    <>
-      <Card id="danger" className="bg-card border-red-500/20">
-        <CardHeader className="px-6 pt-6 pb-4 border-b border-red-500/20">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-md bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
-              <AlertTriangle size={15} />
-            </div>
-            <div>
-              <CardTitle className="text-sm font-semibold text-red-400">Danger Zone</CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">Irreversible actions. Proceed with caution.</p>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="px-6 py-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div>
-              <p className="text-sm font-medium text-foreground mb-0.5">Delete Account</p>
-              <p className="text-xs text-muted-foreground">
-                Permanently delete your account, all endpoints, datasets, and tokens. This cannot be undone.
-              </p>
-            </div>
-            <Button
-              size="sm"
-              onClick={() => setOpen(true)}
-              className="bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 hover:border-red-500/50 text-xs shrink-0"
-            >
-              Delete Account
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="bg-card border-red-500/20 max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base font-semibold text-red-400 flex items-center gap-2">
-              <AlertTriangle size={16} /> Delete Account
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 mt-2">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              This will permanently delete your account, all API endpoints, datasets, clones, and tokens. This action <span className="text-foreground font-medium">cannot be undone</span>.
-            </p>
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground">
-                Type <span className="font-mono text-foreground">delete my account</span> to confirm
-              </label>
-              <Input
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                className="bg-background border-red-500/30 focus:border-red-500 text-sm"
-                placeholder="delete my account"
-              />
-            </div>
-            <div className="flex gap-3 pt-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => { setOpen(false); setConfirm(""); }}
-                className="flex-1 border-border bg-transparent text-xs"
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                disabled={confirm !== "delete my account"}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white text-xs disabled:opacity-40"
-              >
-                Delete Forever
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
   return (
     <div className="max-w-3xl mx-auto px-5 md:px-8 py-10">
+      <AuthGuard />
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-1">Settings</h1>
-        <p className="text-sm text-muted-foreground">Manage your account, tokens, and billing.</p>
+        <p className="text-sm text-muted-foreground">Manage your profile, MCP access, and plan.</p>
       </div>
 
       <div className="space-y-6">
-        <ProfileSection />
-        <PasswordSection />
-        <TokensSection />
-        <BillingSection />
-        <DangerSection />
+        <BioSection />
+        <MCPSection />
+        <PlanSection />
       </div>
     </div>
   );

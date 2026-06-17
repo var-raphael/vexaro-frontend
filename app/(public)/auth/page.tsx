@@ -24,7 +24,7 @@ export default function AuthPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && user) router.replace("/home");
+    if (!loading && user) router.replace("/dashboard");
   }, [user, loading, router]);
 
   async function handleGoogleSignIn() {

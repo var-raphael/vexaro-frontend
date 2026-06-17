@@ -1,4 +1,3 @@
-// app/profile/[username]/ProfileClient.tsx
 "use client";
 
 import { useState } from "react";
@@ -6,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import {
   Calendar, GitBranch, Database, Zap, ExternalLink,
   Crown, Sparkles, Lock, MessageSquare, Clock,
@@ -100,7 +98,7 @@ function formatHits(n: number): string {
   return String(n);
 }
 
-// ── Bio renderer — turns plain-text URLs into clickable links ─────────────────
+// ── Bio renderer ──────────────────────────────────────────────────────────────
 
 function BioText({ text }: { text: string }) {
   if (!text) return null;
@@ -150,7 +148,7 @@ function UnlockModal({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("http://localhost:8080/dataset/clone", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dataset/clone`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -197,34 +195,25 @@ function UnlockModal({
         <div className="space-y-4 mt-2">
           <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-md p-4 space-y-2">
             <div className="flex items-center gap-2">
-              <p className="text-xs font-mono font-medium text-foreground">
-                {dataset.name}
-              </p>
+              <p className="text-xs font-mono font-medium text-foreground">{dataset.name}</p>
               {dataset.has_alt && (
                 <span className="flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-400">
                   <Sparkles size={9} /> alt
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              {dataset.description}
-            </p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">{dataset.description}</p>
             <div className="flex items-center gap-3 pt-1 text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1"><GitBranch size={10} /> v{dataset.active_version}</span>
               <span className="flex items-center gap-1">
-                <GitBranch size={10} /> v{dataset.active_version}
-              </span>
-              <span className="flex items-center gap-1">
-                <Database size={10} />{" "}
-                {dataset.entity_count.toLocaleString()}{" "}
+                <Database size={10} /> {dataset.entity_count.toLocaleString()}{" "}
                 {dataset.dataset_type === "reddit" ? "posts" : "entities"}
               </span>
             </div>
           </div>
 
           <div className="space-y-2 text-xs text-muted-foreground">
-            <p className="font-medium text-foreground text-[11px] uppercase tracking-wider">
-              What you get:
-            </p>
+            <p className="font-medium text-foreground text-[11px] uppercase tracking-wider">What you get:</p>
             {[
               "Full access to view all dataset records",
               "Clone to your account (private)",
@@ -240,9 +229,7 @@ function UnlockModal({
 
           <div className="flex items-center justify-between py-2 border-t border-border/40">
             <span className="text-xs text-muted-foreground">One-time price</span>
-            <span className="text-lg font-bold text-yellow-400">
-              ${dataset.price}
-            </span>
+            <span className="text-lg font-bold text-yellow-400">${dataset.price}</span>
           </div>
 
           {error && (
@@ -252,12 +239,7 @@ function UnlockModal({
           )}
 
           <div className="flex gap-3">
-            <Button
-              variant="outline"
-              className="flex-1 border-border text-sm"
-              onClick={onClose}
-              disabled={loading}
-            >
+            <Button variant="outline" className="flex-1 border-border text-sm" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
             <button
@@ -306,21 +288,15 @@ function DatasetCard({
       : `/dataset/web-view/${dataset.dataset_id}`;
 
   const showPremiumButton = dataset.is_premium && !isOwner;
-
-  // derive an icon from the first tag
   const firstTag = dataset.tag.split(",")[0]?.trim() ?? "";
   const Icon = TYPE_ICON[firstTag] ?? (dataset.dataset_type === "reddit" ? MessageSquare : Database);
 
   return (
-    <Card
-      className={cn(
-        "bg-card border-border hover:border-primary/30 transition-all hover:-translate-y-0.5 duration-150 group flex flex-col",
-        dataset.is_premium && "hover:border-yellow-500/30"
-      )}
-    >
+    <Card className={cn(
+      "bg-card border-border hover:border-primary/30 transition-all hover:-translate-y-0.5 duration-150 group flex flex-col",
+      dataset.is_premium && "hover:border-yellow-500/30"
+    )}>
       <CardContent className="p-5 flex flex-col h-full">
-
-        {/* Header */}
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div className="w-8 h-8 rounded-md bg-accent border border-border flex items-center justify-center text-primary shrink-0 group-hover:border-primary/40 transition-colors">
@@ -337,17 +313,13 @@ function DatasetCard({
                   </span>
                 )}
               </div>
-
-              {/* Badges */}
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span
-                  className={cn(
-                    "text-[10px] font-mono px-1.5 py-0.5 rounded border",
-                    dataset.dataset_type === "reddit"
-                      ? "text-orange-400/80 bg-orange-500/10 border-orange-500/20"
-                      : "text-sky-400/80 bg-sky-500/10 border-sky-500/20"
-                  )}
-                >
+                <span className={cn(
+                  "text-[10px] font-mono px-1.5 py-0.5 rounded border",
+                  dataset.dataset_type === "reddit"
+                    ? "text-orange-400/80 bg-orange-500/10 border-orange-500/20"
+                    : "text-sky-400/80 bg-sky-500/10 border-sky-500/20"
+                )}>
                   {dataset.dataset_type}
                 </span>
                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-primary/20 bg-primary/5 text-primary">
@@ -363,55 +335,31 @@ function DatasetCard({
           </div>
         </div>
 
-        {/* Description */}
         <p className="text-xs text-muted-foreground leading-relaxed mb-3 flex-1 line-clamp-2">
           {dataset.description}
         </p>
 
-        {/* Tags */}
         {dataset.tag && (
           <div className="flex items-center gap-1.5 flex-wrap mb-3">
-            {dataset.tag
-              .split(",")
-              .map((t) => t.trim())
-              .filter(Boolean)
-              .map((t) => (
-                <span
-                  key={t}
-                  className={cn(
-                    "inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded-full border",
-                    tagColor(t)
-                  )}
-                >
-                  {t}
-                </span>
-              ))}
+            {dataset.tag.split(",").map((t) => t.trim()).filter(Boolean).map((t) => (
+              <span key={t} className={cn("inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded-full border", tagColor(t))}>
+                {t}
+              </span>
+            ))}
           </div>
         )}
 
-        {/* Meta */}
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground mb-4 flex-wrap">
           <span className="flex items-center gap-1">
-            {dataset.dataset_type === "reddit" ? (
-              <MessageSquare size={10} />
-            ) : (
-              <Database size={10} />
-            )}
+            {dataset.dataset_type === "reddit" ? <MessageSquare size={10} /> : <Database size={10} />}
             {dataset.entity_count.toLocaleString()}{" "}
             {dataset.dataset_type === "reddit" ? "posts" : "entities"}
           </span>
-          <span className="flex items-center gap-1">
-            <GitBranch size={10} /> {dataset.clone_count} clones
-          </span>
-          <span className="flex items-center gap-1">
-            <Zap size={10} /> {formatHits(dataset.api_hit_count)} hits
-          </span>
-          <span className="flex items-center gap-1 ml-auto">
-            <Clock size={10} /> {formatDate(dataset.created_at)}
-          </span>
+          <span className="flex items-center gap-1"><GitBranch size={10} /> {dataset.clone_count} clones</span>
+          <span className="flex items-center gap-1"><Zap size={10} /> {formatHits(dataset.api_hit_count)} hits</span>
+          <span className="flex items-center gap-1 ml-auto"><Clock size={10} /> {formatDate(dataset.created_at)}</span>
         </div>
 
-        {/* Action */}
         {showPremiumButton ? (
           <button
             onClick={() => onUnlock(dataset)}
@@ -423,11 +371,7 @@ function DatasetCard({
           </button>
         ) : (
           <Link href={viewHref}>
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full text-xs border-border hover:border-primary hover:text-primary bg-transparent"
-            >
+            <Button size="sm" variant="outline" className="w-full text-xs border-border hover:border-primary hover:text-primary bg-transparent">
               <ExternalLink size={11} className="mr-1" /> View
             </Button>
           </Link>
@@ -437,152 +381,21 @@ function DatasetCard({
   );
 }
 
-// ── Edit Profile Modal ────────────────────────────────────────────────────────
-
-function EditProfileModal({
-  open,
-  onClose,
-  profile,
-  onSaved,
-}: {
-  open: boolean;
-  onClose: () => void;
-  profile: ProfileUser;
-  onSaved: (updated: Partial<ProfileUser>) => void;
-}) {
-  const { user } = useAuth();
-  const [bio, setBio] = useState(profile.bio ?? "");
-  const [infoText, setInfoText] = useState(profile.info_text ?? "");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSave() {
-    setSaving(true);
-    setError(null);
-    try {
-      const res = await fetch("http://localhost:8080/profile/update", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: user?.id,
-          bio: bio.trim(),
-          info_text: infoText.trim(),
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setError("Save failed. Try again.");
-        setSaving(false);
-        return;
-      }
-
-      onSaved({ bio: data.bio, info_text: data.info_text });
-      onClose();
-    } catch {
-      setError("Something went wrong.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border max-w-md w-full">
-        <DialogHeader>
-          <DialogTitle className="text-sm font-mono text-foreground">
-            Edit Profile
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4 mt-2">
-          <div className="space-y-1.5">
-            <label className="text-xs text-muted-foreground font-medium">
-              Bio
-              <span className="ml-1 text-muted-foreground/50">
-                (plain text — URLs become clickable)
-              </span>
-            </label>
-            <textarea
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="Tell the world what you build..."
-              rows={4}
-              maxLength={500}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
-            />
-            <p className="text-[11px] text-muted-foreground/50 text-right">
-              {bio.length}/500
-            </p>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs text-muted-foreground font-medium">
-              Extended bio
-              <span className="ml-1 text-muted-foreground/50">(optional)</span>
-            </label>
-            <textarea
-              value={infoText}
-              onChange={(e) => setInfoText(e.target.value)}
-              placeholder="More about you, your work, your projects..."
-              rows={5}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
-            />
-          </div>
-
-          {error && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-destructive/10 border border-destructive/30 text-destructive text-xs">
-              <AlertTriangle size={12} /> {error}
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-1">
-            <Button
-              variant="outline"
-              className="flex-1 border-border text-sm"
-              onClick={onClose}
-              disabled={saving}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
-              onClick={handleSave}
-              disabled={saving}
-            >
-              {saving ? (
-                <>
-                  <Loader2 size={13} className="mr-1.5 animate-spin" /> Saving...
-                </>
-              ) : (
-                "Save changes"
-              )}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ProfileClient({ initialData, username }: Props) {
   const { user } = useAuth();
 
-  const [profile, setProfile] = useState<ProfileUser>(initialData.user);
+  const [profile] = useState<ProfileUser>(initialData.user);
   const [stats] = useState<ProfileStats>(initialData.stats);
   const [datasets] = useState<ProfileDataset[]>(initialData.datasets);
 
   const [unlockTarget, setUnlockTarget] = useState<ProfileDataset | null>(null);
   const [unlockOpen, setUnlockOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
 
   const isOwner = user?.username === username;
 
-  const initials = profile.username
-    .slice(0, 2)
-    .toUpperCase();
+  const initials = profile.username.slice(0, 2).toUpperCase();
 
   function handleUnlock(dataset: ProfileDataset) {
     setUnlockTarget(dataset);
@@ -604,29 +417,13 @@ export default function ProfileClient({ initialData, username }: Props) {
               </Avatar>
 
               <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-4 flex-wrap mb-2">
-                  <div>
-                    <h1 className="text-xl font-bold tracking-tight text-foreground">
-                      {profile.username}
-                    </h1>
-                    <p className="text-sm font-mono text-primary">
-                      @{profile.username}
-                    </p>
-                  </div>
-
-                  {isOwner && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setEditOpen(true)}
-                      className="border-border hover:border-primary hover:text-primary bg-transparent text-xs"
-                    >
-                      Edit Profile
-                    </Button>
-                  )}
+                <div className="mb-2">
+                  <h1 className="text-xl font-bold tracking-tight text-foreground">
+                    {profile.username}
+                  </h1>
+                  <p className="text-sm font-mono text-primary">@{profile.username}</p>
                 </div>
 
-                {/* Bio with clickable links */}
                 {profile.bio && <BioText text={profile.bio} />}
 
                 <div className="flex flex-wrap items-center gap-4 mt-3">
@@ -647,23 +444,18 @@ export default function ProfileClient({ initialData, username }: Props) {
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
           {[
-            { label: "Public Datasets", value: stats.public_datasets,   icon: Database },
-            { label: "Clones received", value: stats.clones_received,   icon: GitBranch },
-            { label: "Versions saved",  value: stats.versions_saved,    icon: GitBranch },
+            { label: "Public Datasets", value: stats.public_datasets,            icon: Database },
+            { label: "Clones received", value: stats.clones_received,            icon: GitBranch },
+            { label: "Versions saved",  value: stats.versions_saved,             icon: GitBranch },
             { label: "API hits",        value: formatHits(stats.total_api_hits), icon: Zap },
           ].map(({ label, value, icon: Icon }) => (
-            <Card
-              key={label}
-              className="bg-card border-border hover:border-primary/30 transition-colors group"
-            >
+            <Card key={label} className="bg-card border-border hover:border-primary/30 transition-colors group">
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="w-8 h-8 rounded-md bg-accent border border-border flex items-center justify-center text-primary shrink-0 group-hover:border-primary/40 transition-colors">
                   <Icon size={14} />
                 </div>
                 <div>
-                  <p className="text-lg font-bold tracking-tight text-foreground">
-                    {value}
-                  </p>
+                  <p className="text-lg font-bold tracking-tight text-foreground">{value}</p>
                   <p className="text-xs text-muted-foreground">{label}</p>
                 </div>
               </CardContent>
@@ -677,10 +469,7 @@ export default function ProfileClient({ initialData, username }: Props) {
             <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
               Public Datasets · {datasets.length}
             </p>
-            <Link
-              href="/public-data"
-              className="text-xs text-primary hover:underline flex items-center gap-1"
-            >
+            <Link href="/datasets" className="text-xs text-primary hover:underline flex items-center gap-1">
               Browse all <ExternalLink size={11} />
             </Link>
           </div>
@@ -688,9 +477,7 @@ export default function ProfileClient({ initialData, username }: Props) {
           {datasets.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <Database size={28} className="text-muted-foreground mb-3" />
-              <p className="text-sm font-medium text-foreground mb-1">
-                No public datasets yet
-              </p>
+              <p className="text-sm font-medium text-foreground mb-1">No public datasets yet</p>
               <p className="text-xs text-muted-foreground">
                 {isOwner
                   ? "Create your first dataset to show it here."
@@ -700,12 +487,7 @@ export default function ProfileClient({ initialData, username }: Props) {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {datasets.map((d) => (
-                <DatasetCard
-                  key={d.dataset_id}
-                  dataset={d}
-                  isOwner={isOwner}
-                  onUnlock={handleUnlock}
-                />
+                <DatasetCard key={d.dataset_id} dataset={d} isOwner={isOwner} onUnlock={handleUnlock} />
               ))}
             </div>
           )}
@@ -717,17 +499,6 @@ export default function ProfileClient({ initialData, username }: Props) {
         open={unlockOpen}
         onClose={() => setUnlockOpen(false)}
       />
-
-      {isOwner && (
-        <EditProfileModal
-          open={editOpen}
-          onClose={() => setEditOpen(false)}
-          profile={profile}
-          onSaved={(updated) =>
-            setProfile((prev) => ({ ...prev, ...updated }))
-          }
-        />
-      )}
     </>
   );
 }

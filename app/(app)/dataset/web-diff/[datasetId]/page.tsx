@@ -66,18 +66,15 @@ function formatDate(dateStr: string): string {
 
 function renderValue(val: unknown): string {
   if (val === null || val === undefined) return "—";
+  if (typeof val === "boolean") return val ? "yes" : "no";
+  if (typeof val === "number") return String(val);
   if (typeof val === "string") return val || "—";
-  if (typeof val === "number" || typeof val === "boolean") return String(val);
   if (Array.isArray(val)) {
-    return val.map((item) =>
-      typeof item === "object" && item !== null
-        ? Object.values(item as Record<string, unknown>).join(" · ")
-        : String(item)
-    ).join(", ");
+    return val.map((item) => renderValue(item)).join(", ");
   }
   if (typeof val === "object") {
     return Object.entries(val as Record<string, unknown>)
-      .map(([k, v]) => `${k}: ${v}`)
+      .map(([k, v]) => `${k}: ${renderValue(v)}`)
       .join(" · ");
   }
   return String(val);
@@ -123,17 +120,12 @@ function DiffRow({ record, vA, vB }: { record: DiffRecord; vA: number; vB: numbe
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-accent/20 transition-colors text-left"
       >
-        {/* Badge */}
         <span className={cn("flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded shrink-0", labelColor, labelBg)}>
           <Icon size={9} /> {label}
         </span>
-
-        {/* Source */}
         <span className="text-xs text-muted-foreground font-mono truncate flex-1" title={record.source}>
           {shortSource(record.source)}
         </span>
-
-        {/* Modified field pills — shown inline when collapsed */}
         {isModified && !open && (record.field_diffs ?? []).length > 0 && (
           <div className="hidden sm:flex gap-1 shrink-0">
             {(record.field_diffs ?? []).slice(0, 3).map((fd) => (
@@ -146,7 +138,6 @@ function DiffRow({ record, vA, vB }: { record: DiffRecord; vA: number; vB: numbe
             )}
           </div>
         )}
-
         {open
           ? <ChevronUp size={12} className="text-muted-foreground/40 shrink-0" />
           : <ChevronDown size={12} className="text-muted-foreground/40 shrink-0" />
@@ -157,33 +148,30 @@ function DiffRow({ record, vA, vB }: { record: DiffRecord; vA: number; vB: numbe
       {open && (
         <div className="border-t border-border/30 divide-y divide-border/20">
           {isModified ? (
-            // Modified: show only changed fields as old → new
-            (record.field_diffs ?? []).map((fd) => (
-              <div key={fd.field} className="flex items-baseline gap-3 px-4 py-2 text-xs font-mono">
-                <span className="text-muted-foreground/50 w-28 shrink-0">{fd.field}</span>
-                <span className="text-red-400/80 line-through decoration-red-500/30 truncate max-w-[180px]" title={renderValue(fd.v1)}>
-                  {renderValue(fd.v1)}
-                </span>
-                <span className="text-muted-foreground/30 shrink-0">→</span>
-                <span className="text-emerald-400/90 truncate max-w-[180px]" title={renderValue(fd.v2)}>
-                  {renderValue(fd.v2)}
-                </span>
-              </div>
-            ))
-          ) : (
-            // Added / Subtracted: show all fields
-            (fields as { field: string; v1: unknown; v2: unknown }[]).map(({ field, v1, v2 }) => (
-              <div key={field} className="flex items-baseline gap-3 px-4 py-2 text-xs font-mono">
-                <span className="text-muted-foreground/50 w-28 shrink-0">{field}</span>
-                <span className={cn(
-                  "truncate max-w-[300px]",
-                  isAdded ? "text-emerald-400/90" : "text-red-400/80"
-                )} title={renderValue(isAdded ? v2 : v1)}>
-                  {renderValue(isAdded ? v2 : v1)}
-                </span>
-              </div>
-            ))
-          )}
+  (record.field_diffs ?? []).map((fd) => (
+    <div key={fd.field} className="flex flex-col gap-1 px-4 py-2.5 text-xs font-mono">
+      <span className="text-muted-foreground/50">{fd.field}</span>
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-red-400/80 line-through decoration-red-500/30 break-all" title={renderValue(fd.v1)}>
+          {renderValue(fd.v1)}
+        </span>
+        <span className="text-muted-foreground/30 shrink-0">→</span>
+        <span className="text-emerald-400/90 break-all" title={renderValue(fd.v2)}>
+          {renderValue(fd.v2)}
+        </span>
+      </div>
+    </div>
+  ))
+) : (
+  (fields as { field: string; v1: unknown; v2: unknown }[]).map(({ field, v1, v2 }) => (
+    <div key={field} className="flex flex-col gap-1 px-4 py-2.5 text-xs font-mono">
+      <span className="text-muted-foreground/50">{field}</span>
+      <span className={cn("break-all", isAdded ? "text-emerald-400/90" : "text-red-400/80")} title={renderValue(isAdded ? v2 : v1)}>
+        {renderValue(isAdded ? v2 : v1)}
+      </span>
+    </div>
+  ))
+)}
         </div>
       )}
     </div>
