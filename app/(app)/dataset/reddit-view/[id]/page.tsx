@@ -930,10 +930,10 @@ export default function RedditDatasetViewPage() {
                       fontSize: "12px",
                       color: "hsl(var(--foreground))",
                     }}
-                    formatter={(value: number, name: string) => [
-                      value,
-                      name === "posts" ? "Posts" : "Net Change",
-                    ]}
+                    formatter={(value, name) => [
+  value ?? 0,
+  name === "posts" ? "Posts" : "Net Change",
+]}
                   />
                   <Line
                     yAxisId="posts"
