@@ -157,7 +157,7 @@ function NewDatasetModal({
   onSelect,
 }: {
   onCancel: () => void;
-  onSelect: (type: string) => void;
+  onSelect: (type: DatasetType) => void;
 }) {
   const router = useRouter();
 
