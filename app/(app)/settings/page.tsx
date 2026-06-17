@@ -76,12 +76,12 @@ function BioSection() {
   return (
     <Section id="profile" icon={User} title="Profile" desc="Your public profile info.">
       <div className="flex items-center gap-4 mb-6">
-        <Avatar className="w-14 h-14 border border-border">
-          <AvatarImage src={user?.avatar ?? ""} alt={user?.name ?? ""} />
-          <AvatarFallback className="bg-accent text-primary text-lg font-semibold">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
+       <Avatar className="w-14 h-14 border border-border">
+  
+  <AvatarFallback className="bg-accent text-primary text-lg font-semibold">
+    {initials}
+  </AvatarFallback>
+</Avatar>
         <div>
           <p className="text-sm font-medium text-foreground">{user?.name}</p>
           <p className="text-xs text-muted-foreground">{user?.email}</p>
