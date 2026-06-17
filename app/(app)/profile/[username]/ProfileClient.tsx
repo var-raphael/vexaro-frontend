@@ -145,6 +145,7 @@ function UnlockModal({
   if (!dataset) return null;
 
   async function handleCheckout() {
+    if (!dataset) return;
     setLoading(true);
     setError(null);
     try {
