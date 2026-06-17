@@ -20,7 +20,7 @@ const FREE_PLAN = {
   period: "/mo",
   desc: "For exploration and testing only.",
   features: [
-    "2 datasets",
+    "1 datasets",
     "20 URLs per dataset",
     "10 Serper-discovered URLs per dataset",
     "Nightly automatic refresh",
