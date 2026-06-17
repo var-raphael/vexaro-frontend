@@ -47,7 +47,7 @@ export async function proxy(request: NextRequest) {
     "/notifications",
     "/settings",
     "/profile",
-    "/dataset/amazon-new"
+    "/dataset/amazon-new",
     "/dataset/web-new",
     "/dataset/web-edit",
     "/dataset/amazon-edit",
