@@ -192,7 +192,7 @@ function Hero() {
 for the live web.
 <br />
           <Typewriter words={[
-  "your agent's knowledge layer.",
+  "your agent's knowledge layer base.",
   "your dashboard's live source.",
   "your model's training pipeline.",
   "your competitor tracker.",
