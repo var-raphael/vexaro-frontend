@@ -162,11 +162,12 @@ function CloneModal({ dataset, open, onClose }: CloneModalProps) {
     return true;
   }
 
-  async function handleClone() {
-    if (!dataset) return;
-    setCloning(true);
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dataset/clone`, {
+  async function handleCheckout() {
+  if (!dataset) return;   // ← add this line
+  setLoading(true);
+  setError(null);
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dataset/clone`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
