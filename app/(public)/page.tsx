@@ -198,9 +198,6 @@ function Hero() {
         <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--accent-color)", boxShadow: "0 0 6px var(--accent-color)" }} />
       </div>
 
-      <div className="mb-10 relative z-10" style={{ animation: "fadeUp 0.6s ease 0.05s both" }}>
-        <VexaroMark size={48} />
-      </div>
 
       <div className="relative z-10 max-w-5xl">
         <h1
