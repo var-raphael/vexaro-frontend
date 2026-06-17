@@ -925,7 +925,10 @@ export function DatasetViewClient({ id, initialDataset }: DatasetViewClientProps
                   <ReferenceLine yAxisId="change" y={0} stroke="hsl(var(--border))" strokeDasharray="3 3" />
                   <Tooltip
                     contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px", fontSize: "12px", color: "hsl(var(--foreground))" }}
-                    formatter={(value: number, name: string) => [value, name === "entities" ? "Entities" : "Net Change"]}
+                    formatter={(value, name) => [
+  value ?? 0,
+  name === "entities" ? "Entities" : "Net Change",
+]}
                   />
                   <Line yAxisId="entities" type="monotone" dataKey="entities" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 5, fill: "hsl(var(--primary))", strokeWidth: 0 }} activeDot={{ r: 7, strokeWidth: 0 }} />
                   <Line yAxisId="change" type="monotone" dataKey="change" stroke="#34d399" strokeWidth={2.5} strokeDasharray="5 3" dot={{ r: 4.5, fill: "#34d399", strokeWidth: 0 }} activeDot={{ r: 6.5, strokeWidth: 0 }} />
