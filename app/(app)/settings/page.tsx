@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { AuthGuard } from "@/components/auth/auth-guard";
+import { callBackend } from "@/lib/api";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -56,13 +57,11 @@ function BioSection() {
     : "?";
 
   async function handleSave() {
-    if (!user?.id) return;
     setSaving(true);
     try {
-      await fetch(`${API}/profile/update`, {
+      await callBackend(`/profile/update`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: user.id, bio }),
+        body: JSON.stringify({ bio }),
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -138,10 +137,9 @@ function MCPSection() {
     : null;
 
   useEffect(() => {
-    if (!user?.id) return;
     async function fetchToken() {
       try {
-        const res = await fetch(`${API}/mcp/token/view?user_id=${user!.id}`);
+        const res = await callBackend(`/mcp/token/view`);
         const data = await res.json();
         if (data.has_token && data.is_active) {
           setToken(data.token);
@@ -155,16 +153,14 @@ function MCPSection() {
       }
     }
     fetchToken();
-  }, [user?.id]);
+  }, []);
 
   async function handleGenerate() {
-    if (!user?.id) return;
     setGenerating(true);
     try {
-      const res = await fetch(`${API}/mcp/token`, {
+      const res = await callBackend(`/mcp/token`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: user.id }),
+        body: JSON.stringify({}),
       });
       const data = await res.json();
       if (data.ok) {

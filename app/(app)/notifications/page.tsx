@@ -16,8 +16,8 @@ import {
   Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/context/AuthContext";
 import { AuthGuard } from "@/components/auth/auth-guard";
+import { callBackend } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -179,17 +179,13 @@ function NotifRow({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function NotificationsPage() {
-  const { user } = useAuth();
   const [notifs, setNotifs] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetchNotifications = useCallback(async () => {
-    if (!user?.id) return;
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/notifications?user_id=${user.id}`
-      );
+      const res = await callBackend(`/notifications`);
       if (!res.ok) return;
       const data = await res.json();
       setNotifs(data.notifications ?? []);
@@ -199,7 +195,7 @@ export default function NotificationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, []);
 
   useEffect(() => {
     fetchNotifications();
@@ -215,14 +211,10 @@ export default function NotificationsPage() {
     setUnreadCount((prev) => Math.max(0, prev - 1));
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/read`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: user?.id,
-          notification_id: notificationID,
-        }),
-      });
+      await callBackend(`/notifications/read`, {
+  method: "POST",
+  body: JSON.stringify({ notification_id: notificationID }),
+});
     } catch (err) {
       console.error("[notifications] mark read error:", err);
     }
@@ -234,11 +226,10 @@ export default function NotificationsPage() {
     setUnreadCount(0);
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/read`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: user?.id }),
-      });
+      await callBackend(`/notifications/read`, {
+  method: "POST",
+  body: JSON.stringify({}),
+});
     } catch (err) {
       console.error("[notifications] mark all read error:", err);
     }

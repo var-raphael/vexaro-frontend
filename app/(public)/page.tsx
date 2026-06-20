@@ -38,7 +38,7 @@ const FREE_PLAN = {
 
 const PRO_PLAN = {
   name: "Pro",
-  price: "$35",
+  price: "$19",
   period: "/mo",
   desc: "For builders who need live, versioned web data without managing infrastructure.",
   features: [

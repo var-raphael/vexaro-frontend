@@ -528,23 +528,23 @@ export default function DiffPage() {
       {diff && !diffLoading && (
         <div className="space-y-3">
           {/* Filter tabs */}
-          <div className="flex items-center gap-1 bg-accent border border-border rounded-md p-1 w-fit">
-            {FILTERS.map((f) => (
-              <button
-                key={f.value}
-                onClick={() => setFilter(f.value)}
-                className={cn(
-                  "px-3 py-1 text-xs rounded transition-colors whitespace-nowrap",
-                  filter === f.value
-                    ? "bg-background border border-border text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {f.label}
-                <span className="ml-1.5 text-muted-foreground/40">{f.count}</span>
-              </button>
-            ))}
-          </div>
+<div className="flex items-center gap-1 bg-accent border border-border rounded-md p-1 w-full overflow-x-auto">
+  {FILTERS.map((f) => (
+    <button
+      key={f.value}
+      onClick={() => setFilter(f.value)}
+      className={cn(
+        "px-3 py-1 text-xs rounded transition-colors whitespace-nowrap flex-shrink-0",
+        filter === f.value
+          ? "bg-background border border-border text-foreground shadow-sm"
+          : "text-muted-foreground hover:text-foreground"
+      )}
+    >
+      {f.label}
+      <span className="ml-1.5 text-muted-foreground/40">{f.count}</span>
+    </button>
+  ))}
+</div>
 
           {filteredRecords.length === 0 ? (
             <div className="flex items-center justify-center py-16 text-xs text-muted-foreground">

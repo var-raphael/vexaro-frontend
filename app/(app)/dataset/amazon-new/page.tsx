@@ -12,7 +12,7 @@ import {
   Globe, Lock, XCircle, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/context/AuthContext";
+import { callBackend } from "@/lib/api";
 
 type Visibility = "public" | "private";
 type NightlyRefresh = "yes" | "no";
@@ -556,7 +556,6 @@ function Step2({
 
 export default function CreateAmazonDatasetPage() {
   const router = useRouter();
-  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [meta, setMeta] = useState<Step1Form | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -571,11 +570,10 @@ export default function CreateAmazonDatasetPage() {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/amazon-new`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: user?.id, ...full }),
-      });
+      const res = await callBackend(`/amazon-new`, {
+  method: "POST",
+  body: JSON.stringify({ ...full }),
+});
       if (!res.ok) {
         const text = await res.text();
         throw new Error(`Server error ${res.status}: ${text}`);

@@ -485,52 +485,54 @@ function DataViewer({ entities, page, totalPages, total, onPageChange }: {
             )}
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-3">
-                <span className="text-xs text-muted-foreground">
-                  {(page - 1) * 25 + 1}–{Math.min(page * 25, total)} of {total} entities
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <button onClick={() => onPageChange(1)} disabled={page === 1}
-                    className="w-7 h-7 flex items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                    <ChevronsLeft size={12} />
-                  </button>
-                  <button onClick={() => onPageChange(page - 1)} disabled={page === 1}
-                    className="w-7 h-7 flex items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                    <ChevronLeft size={12} />
-                  </button>
-                  {(() => {
-                    const pages: (number | "ellipsis")[] = [];
-                    if (totalPages <= 5) {
-                      for (let i = 1; i <= totalPages; i++) pages.push(i);
-                    } else {
-                      pages.push(1);
-                      if (page <= 3) pages.push(2, 3, 4, "ellipsis", totalPages);
-                      else if (page >= totalPages - 2) pages.push("ellipsis", totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
-                      else pages.push("ellipsis", page - 1, page, page + 1, "ellipsis", totalPages);
-                    }
-                    return pages.map((p, i) =>
-                      p === "ellipsis" ? (
-                        <span key={`e-${i}`} className="w-7 h-7 flex items-center justify-center text-xs text-muted-foreground/50">···</span>
-                      ) : (
-                        <button key={p} onClick={() => onPageChange(p as number)}
-                          className={cn("w-7 h-7 text-xs rounded border transition-colors",
-                            p === page ? "border-primary/40 bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground")}>
-                          {p}
-                        </button>
-                      )
-                    );
-                  })()}
-                  <button onClick={() => onPageChange(page + 1)} disabled={page === totalPages}
-                    className="w-7 h-7 flex items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                    <ChevronRight size={12} />
-                  </button>
-                  <button onClick={() => onPageChange(totalPages)} disabled={page === totalPages}
-                    className="w-7 h-7 flex items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                    <ChevronsRight size={12} />
-                  </button>
-                </div>
-              </div>
-            )}
+  <div className="flex items-center justify-between mt-3 gap-2 flex-wrap">
+    <span className="text-xs text-muted-foreground shrink-0">
+      {(page - 1) * 25 + 1}–{Math.min(page * 25, total)} of {total} entities
+    </span>
+    <div className="flex items-center gap-1">
+      <button onClick={() => onPageChange(1)} disabled={page === 1}
+        className="w-7 h-7 flex items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+        <ChevronsLeft size={12} />
+      </button>
+      <button onClick={() => onPageChange(page - 1)} disabled={page === 1}
+        className="w-7 h-7 flex items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+        <ChevronLeft size={12} />
+      </button>
+      {(() => {
+        const pages: (number | "ellipsis")[] = [];
+        if (totalPages <= 3) {
+          for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else {
+          if (page <= 2) pages.push(1, 2, 3, "ellipsis", totalPages);
+          else if (page >= totalPages - 1) pages.push(1, "ellipsis", totalPages - 2, totalPages - 1, totalPages);
+          else pages.push(1, "ellipsis", page - 1, page, page + 1, "ellipsis", totalPages);
+        }
+        // Dedupe ellipsis
+        return pages
+          .filter((p, i, arr) => !(p === "ellipsis" && arr[i - 1] === "ellipsis"))
+          .map((p, i) =>
+            p === "ellipsis" ? (
+              <span key={`e-${i}`} className="w-6 h-7 flex items-center justify-center text-xs text-muted-foreground/50">·</span>
+            ) : (
+              <button key={p} onClick={() => onPageChange(p as number)}
+                className={cn("w-7 h-7 text-xs rounded border transition-colors",
+                  p === page ? "border-primary/40 bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground")}>
+                {p}
+              </button>
+            )
+          );
+      })()}
+      <button onClick={() => onPageChange(page + 1)} disabled={page === totalPages}
+        className="w-7 h-7 flex items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+        <ChevronRight size={12} />
+      </button>
+      <button onClick={() => onPageChange(totalPages)} disabled={page === totalPages}
+        className="w-7 h-7 flex items-center justify-center rounded border border-border text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+        <ChevronsRight size={12} />
+      </button>
+    </div>
+  </div>
+)}
           </>
         )}
       </CardContent>
@@ -961,37 +963,39 @@ export function DatasetViewClient({ id, initialDataset }: DatasetViewClientProps
         )}
 
         {/* Schema */}
-        <Card className="bg-card border-border">
-          <CardContent className="p-5">
-            <SectionHeader title="Schema" />
-            {schemaFields.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No schema defined.</p>
-            ) : (
-              <div className="border border-border rounded-md overflow-hidden">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="bg-accent/50 border-b border-border">
-                      <th className="text-left px-4 py-2.5 font-medium text-muted-foreground w-1/4">Field</th>
-                      <th className="text-left px-4 py-2.5 font-medium text-muted-foreground w-1/4">Type</th>
-                      <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Description</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {schemaFields.map(([key, field], i) => (
-                      <tr key={key} className={cn("border-b border-border last:border-0", i % 2 !== 0 && "bg-accent/20")}>
-                        <td className="px-4 py-2.5 font-mono text-foreground">{key}</td>
-                        <td className="px-4 py-2.5">
-                          <span className="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">{field.type}</span>
-                        </td>
-                        <td className="px-4 py-2.5 text-muted-foreground">{field.description}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      <Card className="bg-card border-border">
+  <CardContent className="p-5">
+    <SectionHeader title="Schema" />
+    {schemaFields.length === 0 ? (
+      <p className="text-xs text-muted-foreground">No schema defined.</p>
+    ) : (
+      <div className="border border-border rounded-md overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs min-w-[400px]">
+            <thead>
+              <tr className="bg-accent/50 border-b border-border">
+                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground w-[30%]">Field</th>
+                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground w-[25%]">Type</th>
+                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {schemaFields.map(([key, field], i) => (
+                <tr key={key} className={cn("border-b border-border last:border-0", i % 2 !== 0 && "bg-accent/20")}>
+                  <td className="px-4 py-2.5 font-mono text-foreground break-all">{key}</td>
+                  <td className="px-4 py-2.5">
+                    <span className="font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded break-all">{field.type}</span>
+                  </td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{field.description}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )}
+  </CardContent>
+</Card>
 
         {/* URL Sources */}
         <Card className="bg-card border-border">

@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { AuthGuard } from "@/components/auth/auth-guard";
+import { callBackend } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -166,21 +167,18 @@ function CloneModal({ dataset, open, onClose }: CloneModalProps) {
     if (!dataset) return;
     setCloning(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dataset/clone`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          source_dataset_id: dataset.dataset_id,
-          user_id: user?.id,
-          name: name.trim(),
-          description: description.trim(),
-          extract_description: extractDescription.trim(),
-          tag: tag.trim(),
-          nightly: nightly ? "yes" : "no",
-          visibility,
-        }),
-      });
-
+      const res = await callBackend(`/dataset/clone`, {
+  method: "POST",
+  body: JSON.stringify({
+    source_dataset_id: dataset.dataset_id,
+    name: name.trim(),
+    description: description.trim(),
+    extract_description: extractDescription.trim(),
+    tag: tag.trim(),
+    nightly: nightly ? "yes" : "no",
+    visibility,
+  }),
+});
       const data = await res.json();
       if (!res.ok) { console.error("clone failed:", data); return; }
 
@@ -417,7 +415,6 @@ interface UnlockModalProps {
 }
 
 function UnlockModal({ dataset, open, onClose }: UnlockModalProps) {
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -432,21 +429,19 @@ function UnlockModal({ dataset, open, onClose }: UnlockModalProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dataset/clone`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          source_dataset_id: dataset.dataset_id,
-          user_id: user?.id,
-          name: dataset.name,
-          description: dataset.description,
-          tag: dataset.tag,
-          nightly: "yes",
-          visibility: "private",
-          is_premium_clone: true,
-          payment_ref: `test-ref-${Date.now()}`,
-        }),
-      });
+      const res = await callBackend(`/dataset/clone`, {
+  method: "POST",
+  body: JSON.stringify({
+    source_dataset_id: dataset.dataset_id,
+    name: dataset.name,
+    description: dataset.description,
+    tag: dataset.tag,
+    nightly: "yes",
+    visibility: "private",
+    is_premium_clone: true,
+    payment_ref: `test-ref-${Date.now()}`,
+  }),
+});
 
       const data = await res.json();
       if (!res.ok) { setError("Clone failed. Try again."); setLoading(false); return; }

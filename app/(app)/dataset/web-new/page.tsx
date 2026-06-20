@@ -25,6 +25,7 @@ import {
 import { FaGlobe } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { callBackend } from "@/lib/api";
 
 type Visibility = "public" | "private";
 type NightlyRefresh = "yes" | "no";
@@ -41,7 +42,7 @@ interface SchemaField {
   id: number;
   type: string;
   description: string;
-  dataType: "string" | "number" | "boolean" | "array";
+  dataType: "string" | "number" | "boolean" | "array" | "url";
 }
 
 interface PipelinePayload extends Step1Form {
@@ -49,6 +50,7 @@ interface PipelinePayload extends Step1Form {
   extractIntent: string;
   schema: SchemaField[];
   urls: string;
+  includeLinks: boolean;
 }
 
 interface ProgressLine {
@@ -60,8 +62,7 @@ interface ProgressLine {
 
 const HARD_BLOCKED = [
   "twitter.com", "x.com", "facebook.com", "instagram.com",
-  "tiktok.com", "youtube.com", "youtu.be", "linkedin.com",
-  "snapchat.com", "pinterest.com", "threads.net",
+  "tiktok.com", "snapchat.com", "pinterest.com", "threads.net",
   "reddit.com", "old.reddit.com",
 ];
 
@@ -508,9 +509,9 @@ function Step2({
                   disabled={submitting}
                   className="h-8 w-full rounded-md border border-border bg-card text-foreground text-xs font-mono px-2 focus:outline-none focus:ring-1 focus:ring-primary/40 disabled:opacity-50"
                 >
-                  {["string", "number", "boolean", "array"].map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
+                    {["string", "number", "boolean", "array", "url"].map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
                 </select>
               </div>
               <div>
@@ -612,7 +613,12 @@ function Step2({
       )}
 
       <Button
-        onClick={() => { if (validate()) onRun({ ...meta, intent: form.intent, extractIntent: form.extractIntent, schema: form.schema, urls: cleanURLsString }); }}
+        onClick={() => {
+  if (validate()) {
+    const hasUrlField = form.schema.some((f) => f.dataType === "url");
+    onRun({ ...meta, intent: form.intent, extractIntent: form.extractIntent, schema: form.schema, urls: cleanURLsString, includeLinks: hasUrlField });
+  }
+}}
         disabled={submitting || phase === "done"}
         className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-xs tracking-widest uppercase gap-2 disabled:opacity-60"
       >
@@ -718,11 +724,10 @@ export default function CreateDatasetPage() {
     setErrorMsg(null);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/queue`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: user?.id, ...full }),
-      });
+      const res = await callBackend(`/queue`, {
+  method: "POST",
+  body: JSON.stringify({ ...full }),
+});
 
       if (!res.ok || !res.body) {
         const text = await res.text();

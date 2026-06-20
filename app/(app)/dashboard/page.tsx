@@ -24,6 +24,7 @@ import {
 import { FaAmazon } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { callBackend } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -749,7 +750,7 @@ export default function DatasetsPage() {
       return;
     }
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/datasets?user_id=${user.id}`);
+      const res = await callBackend(`/datasets`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const normalized = (data.datasets ?? []).map((d: any) => ({
@@ -807,11 +808,10 @@ useEffect(() => {
 
   async function handleDelete(dataset: Dataset) {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dataset/delete`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dataset_id: dataset.dataset_id, user_id: user?.id }),
-      });
+      await callBackend(`/dataset/delete`, {
+  method: "DELETE",
+  body: JSON.stringify({ dataset_id: dataset.dataset_id }),
+});
       setDatasets((prev) => prev.filter((d) => d.dataset_id !== dataset.dataset_id));
     } catch (err) {
       console.error("delete error:", err);
@@ -822,11 +822,10 @@ useEffect(() => {
 
   async function handleFreeze(dataset: Dataset) {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dataset/freeze`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dataset_id: dataset.dataset_id, freeze: !dataset.is_frozen }),
-      });
+      await callBackend(`/dataset/freeze`, {
+  method: "POST",
+  body: JSON.stringify({ dataset_id: dataset.dataset_id, freeze: !dataset.is_frozen }),
+});
       setDatasets((prev) =>
         prev.map((d) =>
           d.dataset_id === dataset.dataset_id
@@ -843,11 +842,10 @@ useEffect(() => {
 
   async function handleRefresh(dataset: Dataset) {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dataset/refresh`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dataset_id: dataset.dataset_id, user_id: user?.id }),
-      });
+      await callBackend(`/dataset/refresh`, {
+  method: "POST",
+  body: JSON.stringify({ dataset_id: dataset.dataset_id }),
+});
       setDatasets((prev) =>
         prev.map((d) =>
           d.dataset_id === dataset.dataset_id ? { ...d, status: "processing" } : d
@@ -862,11 +860,11 @@ useEffect(() => {
 
   async function handleRollback(dataset: Dataset, version: number, freeze: boolean) {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dataset/rollback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dataset_id: dataset.dataset_id, version_number: version, freeze }),
-      });
+      // NEW
+await callBackend(`/dataset/rollback`, {
+  method: "POST",
+  body: JSON.stringify({ dataset_id: dataset.dataset_id, version_number: version, freeze }),
+});
       setDatasets((prev) =>
         prev.map((d) =>
           d.dataset_id === dataset.dataset_id
@@ -884,11 +882,11 @@ useEffect(() => {
 
 async function handleRegeneratePingKey(dataset: Dataset) {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dataset/regenerate/ping-key`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dataset_id: dataset.dataset_id, user_id: user?.id }),
-    });
+    // NEW
+const res = await callBackend(`/dataset/regenerate/ping-key`, {
+  method: "POST",
+  body: JSON.stringify({ dataset_id: dataset.dataset_id }),
+});
     const data = await res.json();
     if (data.ok) {
       setDatasets((prev) =>
@@ -905,11 +903,10 @@ async function handleRegeneratePingKey(dataset: Dataset) {
 
 async function handleRegeneratePrivateKey(dataset: Dataset) {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dataset/regenerate/private-key`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dataset_id: dataset.dataset_id, user_id: user?.id }),
-    });
+    const res = await callBackend(`/dataset/regenerate/private-key`, {
+  method: "POST",
+  body: JSON.stringify({ dataset_id: dataset.dataset_id }),
+});
     const data = await res.json();
     if (data.ok) {
       setDatasets((prev) =>

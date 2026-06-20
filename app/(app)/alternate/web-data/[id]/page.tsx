@@ -16,6 +16,7 @@ import { highlight, languages } from "prismjs/components/prism-core";
 import "prismjs/components/prism-json";
 import "prismjs/themes/prism-tomorrow.css";
 import { useAuth } from "@/context/AuthContext";
+import { callBackend } from "@/lib/api";
 
 interface Entity {
   [key: string]: unknown;
@@ -390,17 +391,14 @@ export default function WebAlternatePage() {
         const originalData = await originalRes.json();
         const originalEntities = originalData.entities ?? [];
 
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dataset/alternate/save`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            dataset_id: Number(datasetId),
-            user_id: user?.id,
-            version,
-            entities: originalEntities,
-          }),
-        });
-
+        await callBackend(`/dataset/alternate/save`, {
+  method: "POST",
+  body: JSON.stringify({
+    dataset_id: Number(datasetId),
+    version,
+    entities: originalEntities,
+  }),
+});
         setDataset({
           dataset_id: Number(datasetId),
           data_name: `Dataset ${datasetId}`,
@@ -488,18 +486,13 @@ export default function WebAlternatePage() {
     setDeleting(true);
     setDeleteError(null);
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/dataset/alternate/delete`,
-        {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            dataset_id: Number(datasetId),
-            user_id: user?.id,
-            version,
-          }),
-        }
-      );
+      const res = await callBackend(`/dataset/alternate/delete`, {
+  method: "DELETE",
+  body: JSON.stringify({
+    dataset_id: Number(datasetId),
+    version,
+  }),
+});
       if (!res.ok) {
         const text = await res.text();
         setDeleteError(text || "Delete failed");
@@ -520,19 +513,14 @@ export default function WebAlternatePage() {
     if (parseError || !user) return;
     setSaveError(null);
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/dataset/alternate/save`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            dataset_id: Number(datasetId),
-            user_id: user.id,
-            version,
-            entities: allEntities,
-          }),
-        }
-      );
+      const res = await callBackend(`/dataset/alternate/save`, {
+  method: "POST",
+  body: JSON.stringify({
+    dataset_id: Number(datasetId),
+    version,
+    entities: allEntities,
+  }),
+});
       if (!res.ok) {
         const text = await res.text();
         setSaveError(text || "Save failed");

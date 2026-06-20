@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { VexaroWordmark } from "@/components/ui/vexaro-mark";
 import { useAuth } from "@/context/AuthContext";
+import { callBackend } from "@/lib/api";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -118,19 +119,19 @@ export function AppNavbar() {
     : "?";
 
   useEffect(() => {
-    if (!user?.id) return;
-    async function fetchUnread() {
-      try {
-        const res = await fetch(`${API}/notifications?user_id=${user!.id}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        setUnreadCount(data.unread_count ?? 0);
-      } catch {
-        // silently fail — nav shouldn't break if this fails
-      }
+  if (!user?.id) return;
+  async function fetchUnread() {
+    try {
+      const res = await callBackend(`/notifications`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setUnreadCount(data.unread_count ?? 0);
+    } catch {
+      // silently fail — nav shouldn't break if this fails
     }
-    fetchUnread();
-  }, [user?.id]);
+  }
+  fetchUnread();
+}, [user?.id]);
 
   function handleSignOut() {
     signOut();

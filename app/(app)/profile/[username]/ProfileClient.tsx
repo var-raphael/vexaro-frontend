@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { callBackend } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -149,22 +150,19 @@ function UnlockModal({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dataset/clone`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          source_dataset_id: dataset.dataset_id,
-          user_id: user?.id,
-          name: dataset.name,
-          description: dataset.description,
-          tag: dataset.tag,
-          nightly: "yes",
-          visibility: "private",
-          is_premium_clone: true,
-          payment_ref: `test-ref-${Date.now()}`,
-        }),
-      });
-
+      const res = await callBackend(`/dataset/clone`, {
+  method: "POST",
+  body: JSON.stringify({
+    source_dataset_id: dataset.dataset_id,
+    name: dataset.name,
+    description: dataset.description,
+    tag: dataset.tag,
+    nightly: "yes",
+    visibility: "private",
+    is_premium_clone: true,
+    payment_ref: `test-ref-${Date.now()}`,
+  }),
+});
       const data = await res.json();
       if (!res.ok) {
         setError("Clone failed. Try again.");

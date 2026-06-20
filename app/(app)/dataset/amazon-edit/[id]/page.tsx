@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { callBackend } from "@/lib/api";
 
 type Visibility = "public" | "private";
 type NightlyRefresh = "yes" | "no";
@@ -287,24 +288,22 @@ export default function EditAmazonDatasetPage() {
     }));
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dataset/amazon/edit`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          dataset_id: Number(datasetId),
-          user_id: user?.id,
-          alias: form.name,
-          description: form.description,
-          tag: form.tag,
-          visibility: form.visibility,
-          nightly: form.nightly,
-          fields: Array.from(selectedFields),
-          new_asins: parsedNewASINs,
-          urls_to_delete: urlsToDelete,
-          is_premium: form.is_premium,
-          price: form.is_premium ? form.price : 0,
-        }),
-      });
+      const res = await callBackend(`/dataset/amazon/edit`, {
+  method: "PATCH",
+  body: JSON.stringify({
+    dataset_id: Number(datasetId),
+    alias: form.name,
+    description: form.description,
+    tag: form.tag,
+    visibility: form.visibility,
+    nightly: form.nightly,
+    fields: Array.from(selectedFields),
+    new_asins: parsedNewASINs,
+    urls_to_delete: urlsToDelete,
+    is_premium: form.is_premium,
+    price: form.is_premium ? form.price : 0,
+  }),
+});
       if (!res.ok) {
         const text = await res.text();
         throw new Error(`Server error ${res.status}: ${text}`);

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { callBackend } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ interface SchemaField {
   id: number;
   type: string;
   description: string;
+  dataType: "string" | "number" | "boolean" | "array" | "url";
 }
 
 interface ExistingURL {
@@ -123,7 +125,7 @@ export default function EditDatasetPage() {
     tag: "",
     visibility: "public",
     nightly: "yes",
-    schema: [{ id: Date.now(), type: "", description: "" }],
+    schema: [{ id: Date.now(), type: "", description: "", dataType: "string" }],
     newUrls: "",
     is_premium: false,
     price: 9,
@@ -173,8 +175,9 @@ export default function EditDatasetPage() {
                   id: Date.now() + i,
                   type: val.type ?? key,
                   description: val.description ?? "",
+                  dataType: val.data_type ?? "string",
                 }))
-              : [{ id: Date.now(), type: "", description: "" }],
+              : [{ id: Date.now(), type: "", description: "", dataType: "string" }],
           newUrls: "",
           is_premium: data.is_premium ?? false,
           price: data.price ?? 9,
@@ -204,7 +207,7 @@ export default function EditDatasetPage() {
   const addField = () =>
     setForm((p) => ({
       ...p,
-      schema: [...p.schema, { id: Date.now(), type: "", description: "" }],
+      schema: [...p.schema, { id: Date.now(), type: "", description: "", dataType: "string" }],
     }));
 
   const removeField = (id: number) =>
@@ -270,31 +273,33 @@ export default function EditDatasetPage() {
       .filter((u) => u.markedForDeletion)
       .map((u) => u.dataset_url_id);
 
+    const hasUrlField = form.schema.some((f) => f.dataType === "url");
+
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/dataset/edit`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            dataset_id: Number(datasetId),
-            user_id: user?.id,
-            description: form.description,
-            extract_description: form.extractDescription,
-            tag: form.tag,
-            visibility: form.visibility,
-            nightly: form.nightly,
-            schema: form.schema.map(({ type, description }) => ({ type, description })),
-            urls: form.newUrls
-              .split("\n")
-              .map((u) => u.trim())
-              .filter(Boolean),
-            urls_to_delete: urlsToDelete,
-            is_premium: form.is_premium,
-            price: form.is_premium ? form.price : 0,
-          }),
-        }
-      );
+      const res = await callBackend(`/dataset/edit`, {
+  method: "PATCH",
+  body: JSON.stringify({
+    dataset_id: Number(datasetId),
+    description: form.description,
+    extract_description: form.extractDescription,
+    tag: form.tag,
+    visibility: form.visibility,
+    nightly: form.nightly,
+    schema: form.schema.map(({ type, description, dataType }) => ({
+      type,
+      description,
+      data_type: dataType,
+    })),
+    urls: form.newUrls
+      .split("\n")
+      .map((u) => u.trim())
+      .filter(Boolean),
+    urls_to_delete: urlsToDelete,
+    is_premium: form.is_premium,
+    price: form.is_premium ? form.price : 0,
+    include_links: hasUrlField,
+  }),
+});
       if (!res.ok) {
         const text = await res.text();
         throw new Error(`Server error ${res.status}: ${text}`);
@@ -608,7 +613,7 @@ export default function EditDatasetPage() {
               {form.schema.map((field) => (
                 <div
                   key={field.id}
-                  className="group grid grid-cols-[1fr_1fr_auto] gap-2 p-3 rounded-lg bg-accent/20 border border-border hover:border-primary/20 transition-colors"
+                  className="group flex flex-col gap-2 p-3 rounded-lg bg-accent/20 border border-border hover:border-primary/20 transition-colors md:grid md:grid-cols-[1fr_120px_1fr_auto]"
                 >
                   <div>
                     <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">
@@ -620,6 +625,20 @@ export default function EditDatasetPage() {
                       placeholder="e.g. title"
                       className="h-8 bg-card border-border text-foreground placeholder:text-muted-foreground font-mono text-xs focus-visible:ring-primary/40 focus-visible:border-primary/50"
                     />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">
+                      Data Type
+                    </p>
+                    <select
+                      value={field.dataType}
+                      onChange={(e) => updateField(field.id, "dataType", e.target.value)}
+                      className="h-8 w-full rounded-md border border-border bg-card text-foreground text-xs font-mono px-2 focus:outline-none focus:ring-1 focus:ring-primary/40"
+                    >
+                      {["string", "number", "boolean", "array", "url"].map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">
