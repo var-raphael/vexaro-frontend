@@ -5,7 +5,9 @@ import {
   Database, GitBranch, Diff, Undo2, Copy,
   RefreshCw, Key, Zap, ArrowRight, Check,
   Globe, Shield, ChevronRight, ArrowUpRight,
-  Webhook, FileJson, Bot, Terminal,
+  Webhook, FileJson, Bot, Terminal, Play,
+  Github, Twitter, Linkedin, Coffee, Sparkles,
+  MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
@@ -186,15 +188,15 @@ function Hero() {
             letterSpacing: "-0.04em",
           }}
         >
-          Data infrastructure
+          The source of truth
 <br />
 for the live web.
 <br />
           <Typewriter words={[
-  "your agent's knowledge layer base.",
-  "your dashboard's live source.",
-  "your model's training pipeline.",
-  "your competitor tracker.",
+  "so you're not scraping the same page twice.",
+  "for your agent's knowledge layer.",
+  "for your dashboard's live source.",
+  "for your competitor tracker.",
 ]} />
         </h1>
 
@@ -203,7 +205,7 @@ for the live web.
             className="text-base md:text-lg leading-relaxed mb-4 max-w-xl"
             style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}
           >
-            Define what data you want from any public website. Vexaro fetches it, structures it against your schema, versions every change, and serves it as a clean API. No pipelines. No maintenance. No dirty surprises.
+            Define what data you want from any public website, once. Vexaro fetches it, structures it against your schema, versions every change, and serves it as a clean API. No pipelines. No maintenance. No dirty surprises.
           </p>
 
           <p
@@ -217,8 +219,8 @@ for the live web.
             <Link href="/auth" className="vx-btn-primary">
               Start building free <ArrowRight size={15} className="ml-1.5" />
             </Link>
-            <Link href="/datasets" className="vx-btn-ghost">
-              Browse datasets <ArrowUpRight size={14} className="ml-1.5" />
+            <Link href="#playground" className="vx-btn-ghost">
+              Try the API <Play size={13} className="ml-1.5" />
             </Link>
           </div>
 
@@ -251,8 +253,8 @@ for the live web.
 
 function ProblemSolution() {
   const PROBLEMS = [
-    { pain: "Pipelines break without warning", detail: "Sites change their structure. Your scraper silently returns empty arrays at 2 AM and nobody notices until the damage is done." },
-    { pain: "Data is always stale", detail: "A cron job missed three runs. Your dashboard is showing last week's numbers and you didn't know." },
+    { pain: "You're re-scraping the same page, over and over", detail: "Every fetch is a one-off. Nothing is remembered, nothing is structured, nothing carries forward to the next time you need it." },
+    { pain: "There's no single source of truth", detail: "Five scripts, five slightly different versions of the same data. Nobody can say which one is current, or what changed since last week." },
     { pain: "80% of your time is data prep", detail: "You wanted to ship a feature. Instead you spent a week writing cleaning scripts, deduplicating rows, and fixing null handling." },
     { pain: "Infrastructure nobody wants to maintain", detail: "Proxies, headless browsers, rate limiting, retries. You're maintaining a small platform just to get some structured data." },
   ];
@@ -261,7 +263,7 @@ function ProblemSolution() {
     { win: "Schema-first extraction", detail: "Tell Vexaro what fields you need in plain English. We deliver them clean, typed, and consistent on every single refresh." },
     { win: "Refreshed every night, automatically", detail: "No cron jobs. No servers. No missed runs. Your data is always current when you wake up." },
     { win: "Every change versioned forever", detail: "Nothing is ever overwritten. Roll back to any prior state instantly. Full diff between any two versions." },
-    { win: "Plug straight into your pipeline", detail: "Clean structured JSON, CSV, JSONL, XML, Excel, Parquet, TSV any format, convient params, ready immediately. No preprocessing. No cleaning scripts." },
+    { win: "Plug straight into your pipeline", detail: "Clean structured JSON, CSV, JSONL, XML, Excel, Parquet, TSV any format, convenient params, ready immediately. No preprocessing. No cleaning scripts." },
   ];
 
   return (
@@ -283,9 +285,9 @@ function ProblemSolution() {
                 className="font-black tracking-tight leading-tight mb-8"
                 style={{ fontSize: "clamp(1.6rem, 3vw, 2.2rem)", fontFamily: "var(--font-display)", letterSpacing: "-0.03em" }}
               >
-                Getting web data into
+                Scraping gets you a page.
                 <br />
-                <span style={{ color: "var(--muted)" }}>your app is still broken.</span>
+                <span style={{ color: "var(--muted)" }}>It doesn't get you a source of truth.</span>
               </h2>
             </Reveal>
             <div className="space-y-6">
@@ -313,9 +315,9 @@ function ProblemSolution() {
                 className="font-black tracking-tight leading-tight mb-8"
                 style={{ fontSize: "clamp(1.6rem, 3vw, 2.2rem)", fontFamily: "var(--font-display)", letterSpacing: "-0.03em" }}
               >
-                Describe your data.
+                Declare it once.
                 <br />
-                Get a live API in minutes.
+                Trust it forever.
               </h2>
             </Reveal>
             <div className="space-y-6">
@@ -356,7 +358,7 @@ const STEPS = [
   {
     n: "03",
     icon: <GitBranch size={16} />,
-    title: "Dataset goes live, versioned from day one",
+    title: "Your source of truth goes live, versioned from day one",
     desc: "Vexaro refreshes nightly. Trigger extra refreshes via your ping URL or webhook. Every change is a permanent snapshot — nothing is ever lost.",
   },
   {
@@ -383,10 +385,10 @@ function HowItWorks() {
             style={{ fontSize: "clamp(2rem, 4vw, 3.5rem)", fontFamily: "var(--font-display)", letterSpacing: "-0.04em" }}
           >
             Four steps from intent
-            <br className="hidden md:block" /> to live structured data.
+            <br className="hidden md:block" /> to a source you can trust.
           </h2>
           <p className="text-sm md:text-base mb-14 max-w-lg" style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}>
-            No infrastructure to manage. No pipelines to maintain. Define your intent and we handle everything else.
+            No infrastructure to manage. No pipelines to maintain. Declare your intent once and we handle everything else.
           </p>
         </Reveal>
 
@@ -417,6 +419,234 @@ function HowItWorks() {
   );
 }
 
+// ── API Playground ────────────────────────────────────────────────────────────
+
+type PlaygroundExample = {
+  id: string;
+  label: string;
+  endpoint: string;
+  params: string;
+  response: string;
+};
+
+const PLAYGROUND_EXAMPLES: PlaygroundExample[] = [
+  {
+    id: "hn",
+    label: "hacker-news-top",
+    endpoint: "GET /v1/datasets/hacker-news-top",
+    params: "?format=json&limit=3&sort=score:desc",
+    response: `{
+  "dataset": "hacker-news-top",
+  "version": 142,
+  "refreshed_at": "2026-06-20T03:00:00Z",
+  "entities": [
+    {
+      "title": "Show HN: I built a source of truth for the web",
+      "score": 412,
+      "comments": 187,
+      "url": "https://news.ycombinator.com/item?id=..."
+    },
+    {
+      "title": "The case against scraping the same page twice",
+      "score": 298,
+      "comments": 94,
+      "url": "https://news.ycombinator.com/item?id=..."
+    },
+    {
+      "title": "Versioned datasets are underrated infrastructure",
+      "score": 251,
+      "comments": 62,
+      "url": "https://news.ycombinator.com/item?id=..."
+    }
+  ]
+}`,
+  },
+  {
+    id: "jobs",
+    label: "remote-jobs",
+    endpoint: "GET /v1/datasets/remote-jobs",
+    params: "?format=json&keywords=senior+remote&sort=salary:desc&limit=2",
+    response: `{
+  "dataset": "remote-jobs",
+  "version": 67,
+  "refreshed_at": "2026-06-20T03:00:00Z",
+  "entities": [
+    {
+      "role": "Senior Backend Engineer",
+      "company": "Acme Data Co.",
+      "salary_range": "$170k - $210k",
+      "stack": ["Go", "Postgres", "Kafka"]
+    },
+    {
+      "role": "Staff Infrastructure Engineer",
+      "company": "Northwind Systems",
+      "salary_range": "$190k - $230k",
+      "stack": ["Rust", "Kubernetes"]
+    }
+  ]
+}`,
+  },
+  {
+    id: "yc",
+    label: "yc-companies",
+    endpoint: "GET /v1/datasets/yc-companies",
+    params: "?format=json&batch=W26&limit=2",
+    response: `{
+  "dataset": "yc-companies",
+  "version": 19,
+  "refreshed_at": "2026-06-20T03:00:00Z",
+  "entities": [
+    {
+      "name": "Exampleify",
+      "batch": "W26",
+      "founders": ["A. Founder", "B. Cofounder"],
+      "website": "https://exampleify.com"
+    },
+    {
+      "name": "Datatone",
+      "batch": "W26",
+      "founders": ["C. Builder"],
+      "website": "https://datatone.io"
+    }
+  ]
+}`,
+  },
+];
+
+function Playground() {
+  const [active, setActive] = useState(PLAYGROUND_EXAMPLES[0]);
+  const [loading, setLoading] = useState(false);
+  const [shown, setShown] = useState(false);
+
+  function run(example: PlaygroundExample) {
+    setActive(example);
+    setShown(false);
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      setShown(true);
+    }, 550);
+  }
+
+  useEffect(() => {
+    run(PLAYGROUND_EXAMPLES[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <section id="playground" className="vx-section" style={{ borderBottom: "1px solid var(--line-color)" }}>
+      <div className="vx-container">
+        <Reveal>
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-8 h-px" style={{ background: "var(--accent-color)" }} />
+            <span className="font-mono text-xs tracking-widest uppercase" style={{ color: "var(--accent-color)" }}>
+              API Playground
+            </span>
+          </div>
+          <h2
+            className="font-black tracking-tight leading-tight mb-4"
+            style={{ fontSize: "clamp(2rem, 4vw, 3.5rem)", fontFamily: "var(--font-display)", letterSpacing: "-0.04em" }}
+          >
+            No account.
+            <br className="hidden md:block" /> No setup. Just hit it.
+          </h2>
+          <p className="text-sm md:text-base mb-14 max-w-lg" style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}>
+            Pick a public dataset and see the shape of the response. This is exactly what you'd get from the real endpoint — no account required.
+          </p>
+        </Reveal>
+
+        <Reveal delay={60}>
+          <div style={{ border: "1px solid var(--line-color)" }}>
+            {/* tabs */}
+            <div
+              className="flex flex-wrap items-center gap-0"
+              style={{ borderBottom: "1px solid var(--line-color)", background: "var(--card-alt)" }}
+            >
+              {PLAYGROUND_EXAMPLES.map((ex) => (
+                <button
+                  key={ex.id}
+                  onClick={() => run(ex)}
+                  className="font-mono text-xs px-5 py-3 transition-colors duration-150"
+                  style={{
+                    color: active.id === ex.id ? "var(--accent-color)" : "var(--muted)",
+                    borderRight: "1px solid var(--line-color)",
+                    borderBottom: active.id === ex.id ? "2px solid var(--accent-color)" : "2px solid transparent",
+                    background: "transparent",
+                    cursor: "pointer",
+                  }}
+                >
+                  {ex.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+              {/* request */}
+              <div className="p-6 md:p-8" style={{ borderRight: "1px solid var(--line-color)", borderBottom: "1px solid var(--line-color)" }}>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="font-mono text-xs tracking-widest uppercase" style={{ color: "var(--muted-2)" }}>Request</span>
+                  <button
+                    onClick={() => run(active)}
+                    className="flex items-center gap-1.5 font-mono text-xs px-3 py-1.5"
+                    style={{ border: "1px solid var(--line-color)", color: "var(--accent-color)", cursor: "pointer", background: "transparent" }}
+                  >
+                    <Play size={11} /> Run
+                  </button>
+                </div>
+                <div
+                  className="font-mono text-xs leading-relaxed p-4"
+                  style={{ background: "var(--bg)", border: "1px solid var(--line-color)" }}
+                >
+                  <p style={{ color: "var(--accent-color)" }}>{active.endpoint}</p>
+                  <p style={{ color: "var(--muted)" }}>{active.params}</p>
+                </div>
+                <p className="mt-4 text-xs leading-relaxed" style={{ color: "var(--muted-2)", fontFamily: "var(--font-body)" }}>
+                  Swap the dataset slug for any public dataset in the marketplace. Filter, sort, paginate, and choose your format, all via query params.
+                </p>
+              </div>
+
+              {/* response */}
+              <div className="p-6 md:p-8" style={{ borderBottom: "1px solid var(--line-color)" }}>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="font-mono text-xs tracking-widest uppercase" style={{ color: "var(--muted-2)" }}>Response</span>
+                  <span className="flex items-center gap-1.5 font-mono text-xs" style={{ color: loading ? "#f59e0b" : "var(--accent-color)" }}>
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: loading ? "#f59e0b" : "var(--accent-color)" }} />
+                    {loading ? "fetching..." : "200 OK"}
+                  </span>
+                </div>
+                <pre
+                  className="font-mono text-xs leading-relaxed p-4 overflow-x-auto"
+                  style={{
+                    background: "var(--bg)",
+                    border: "1px solid var(--line-color)",
+                    color: "var(--muted)",
+                    minHeight: "220px",
+                    opacity: shown ? 1 : 0.3,
+                    transition: "opacity 0.2s ease",
+                  }}
+                >
+{active.response}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </Reveal>
+
+        <Reveal delay={120}>
+          <div className="mt-6 flex flex-col sm:flex-row items-start gap-3">
+            <Link href="/auth" className="vx-btn-primary">
+              Create your own dataset <ArrowRight size={15} className="ml-1.5" />
+            </Link>
+            <Link href="/datasets" className="vx-btn-ghost">
+              Browse all public datasets <ArrowUpRight size={14} className="ml-1.5" />
+            </Link>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
 // ── Features ──────────────────────────────────────────────────────────────────
 
 const FEATURES = [
@@ -427,7 +657,7 @@ const FEATURES = [
   { icon: <Webhook size={15} />, title: "Webhook Notifications", desc: "Register a webhook endpoint and Vexaro will notify you the moment your dataset finishes refreshing. Build reactive pipelines without polling." },
   { icon: <GitBranch size={15} />, title: "Immutable Version History", desc: "Every refresh is a permanent snapshot. Nothing is ever overwritten. Your full history is always queryable, diffable, and downloadable." },
   { icon: <Diff size={15} />, title: "Visual Diff Viewer", desc: "See exactly what changed between any two versions. Added rows, removed entries, modified field values — all clearly visualized side by side." },
-  { icon: <Undo2 size={15} />, title: "One-Click Rollback", desc: "A bad refresh brought in dirty data? Roll back to any prior version instantly. Freeze it to lock it permanently. Your pipeline stays stable." },
+  { icon: <Undo2 size={15} />, title: "One-Click Rollback", desc: "A bad refresh brought in dirty data? Roll back to any prior version instantly. Freeze it to lock it permanently. Your source of truth stays stable." },
   { icon: <Copy size={15} />, title: "Clone & Extend", desc: "Fork any public dataset like a GitHub repo. Add your own schema fields, your own URLs, and publish it back. You own it fully from day one." },
 ];
 
@@ -446,12 +676,12 @@ function Features() {
             className="font-black tracking-tight leading-tight mb-4"
             style={{ fontSize: "clamp(2rem, 4vw, 3.5rem)", fontFamily: "var(--font-display)", letterSpacing: "-0.04em" }}
           >
-            Everything your pipeline needs.
+            Everything a source of truth needs.
             <br className="hidden md:block" />
             <span style={{ color: "var(--muted)" }}> Nothing it doesn't.</span>
           </h2>
           <p className="text-sm md:text-base mb-14 max-w-lg" style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}>
-            Built for anyone who needs reliable, structured web data without managing the infrastructure behind it.
+            Built for anyone who needs reliable, structured web data they can actually depend on — without managing the infrastructure behind it.
           </p>
         </Reveal>
 
@@ -521,7 +751,7 @@ function MCPSection() {
               >
                 Not just an API.
                 <br />
-                <span style={{ color: "var(--muted)" }}>A tool Claude can call.</span>
+                <span style={{ color: "var(--muted)" }}>A source of truth Claude can call.</span>
               </h2>
               <p
                 className="text-sm leading-relaxed mb-8"
@@ -619,7 +849,7 @@ function DatasetsPreview() {
             className="font-black tracking-tight leading-tight mb-4"
             style={{ fontSize: "clamp(2rem, 4vw, 3.5rem)", fontFamily: "var(--font-display)", letterSpacing: "-0.04em" }}
           >
-            The data you actually need,
+            Sources of truth,
             <br className="hidden md:block" />
             <span style={{ color: "var(--muted)" }}> already built.</span>
           </h2>
@@ -842,8 +1072,7 @@ function Pricing() {
             className="text-sm md:text-base mb-14 max-w-lg"
             style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}
           >
-            Start free. Upgrade when you need nightly refresh, version history,
-            and live API access. Flat pricing — no usage bills, no hidden fees.
+            Start free. Upgrade when one source of truth isn't enough. Flat pricing — no usage bills, no hidden fees.
           </p>
         </Reveal>
 
@@ -864,6 +1093,153 @@ function Pricing() {
   );
 }
 
+// ── Journey / Connect ─────────────────────────────────────────────────────────
+
+const SOCIAL_LINKS = [
+  {
+    icon: <Twitter size={15} />,
+    label: "X / Twitter",
+    handle: "@vexaro_hq",
+    href: "https://x.com/vexaro_hq",
+    detail: "Build logs, ships, and the occasional rant about anti-bot systems.",
+  },
+  {
+    icon: <Github size={15} />,
+    label: "GitHub",
+    handle: "@vexaro",
+    href: "https://github.com/vexaro",
+    detail: "Open issues, request features, or just watch the commits roll in.",
+  },
+  {
+    icon: <Linkedin size={15} />,
+    label: "LinkedIn",
+    handle: "Vexaro",
+    href: "https://linkedin.com/company/vexaro",
+    detail: "The more professional version of the same updates.",
+  },
+];
+
+const JOURNEY_POINTS = [
+  {
+    icon: <Sparkles size={13} />,
+    title: "Built solo, shipped in public",
+    detail: "No team standup, no roadmap committee. Just one founder building the thing they wished existed, in the open.",
+  },
+  {
+    icon: <MessageCircle size={13} />,
+    title: "Your feedback reaches me directly",
+    detail: "No support ticket queue, no tier-1/tier-2 routing. Message me and you're talking to the person who wrote the code.",
+  },
+  {
+    icon: <Coffee size={13} />,
+    title: "Early, and moving fast",
+    detail: "Public beta means rough edges and fast fixes. If something's broken or missing, that's exactly what I want to hear about."
+  },
+];
+
+function Journey() {
+  return (
+    <section id="journey" className="vx-section" style={{ borderBottom: "1px solid var(--line-color)" }}>
+      <div className="vx-container">
+        <Reveal>
+          <div className="flex items-center gap-4 mb-16">
+            <div className="w-8 h-px" style={{ background: "var(--accent-color)" }} />
+            <span className="font-mono text-xs tracking-widest uppercase" style={{ color: "var(--accent-color)" }}>
+              Follow the Journey
+            </span>
+          </div>
+        </Reveal>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0" style={{ border: "1px solid var(--line-color)" }}>
+          <div className="p-8 md:p-12" style={{ borderRight: "1px solid var(--line-color)" }}>
+            <Reveal>
+              <h2
+                className="font-black tracking-tight leading-tight mb-6"
+                style={{ fontSize: "clamp(1.6rem, 3vw, 2.2rem)", fontFamily: "var(--font-display)", letterSpacing: "-0.03em" }}
+              >
+                Built by one person.
+                <br />
+                <span style={{ color: "var(--muted)" }}>Talking to you directly.</span>
+              </h2>
+              <p
+                className="text-sm leading-relaxed mb-8"
+                style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}
+              >
+                Vexaro is a solo-founder startup, early and public. That's not a disclaimer, it's how you get a direct line to the person actually building it — no layers in between.
+              </p>
+            </Reveal>
+            <div className="space-y-6">
+              {JOURNEY_POINTS.map(({ icon, title, detail }, i) => (
+                <Reveal key={title} delay={i * 70}>
+                  <div className="flex gap-4">
+                    <span className="mt-0.5 shrink-0" style={{ color: "var(--accent-color)" }}>{icon}</span>
+                    <div>
+                      <p className="text-sm font-semibold mb-1" style={{ fontFamily: "var(--font-body)" }}>{title}</p>
+                      <p className="text-xs leading-relaxed" style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}>{detail}</p>
+                    </div>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-8 md:p-12" style={{ background: "var(--card-alt)" }}>
+            <Reveal delay={80}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-4 h-px" style={{ background: "var(--accent-color)" }} />
+                <span className="font-mono text-xs tracking-widest uppercase" style={{ color: "var(--accent-color)" }}>
+                  Say hello
+                </span>
+              </div>
+            </Reveal>
+
+            <div className="space-y-3">
+              {SOCIAL_LINKS.map(({ icon, label, handle, href, detail }, i) => (
+                <Reveal key={label} delay={80 + i * 70}>
+                  <Link
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start justify-between gap-4 p-5 group transition-colors duration-150"
+                    style={{ border: "1px solid var(--line-color)", background: "var(--bg)" }}
+                  >
+                    <div className="flex gap-4">
+                      <span
+                        className="w-8 h-8 flex items-center justify-center shrink-0"
+                        style={{ border: "1px solid var(--line-color)", color: "var(--accent-color)" }}
+                      >
+                        {icon}
+                      </span>
+                      <div>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-sm font-semibold" style={{ fontFamily: "var(--font-body)" }}>{label}</span>
+                          <span className="font-mono text-xs" style={{ color: "var(--muted-2)" }}>{handle}</span>
+                        </div>
+                        <p className="text-xs leading-relaxed" style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}>{detail}</p>
+                      </div>
+                    </div>
+                    <ArrowUpRight
+                      size={14}
+                      className="shrink-0 mt-1 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                      style={{ color: "var(--muted-2)" }}
+                    />
+                  </Link>
+                </Reveal>
+              ))}
+            </div>
+
+            <Reveal delay={80 + SOCIAL_LINKS.length * 70}>
+              <p className="mt-6 text-xs leading-relaxed" style={{ color: "var(--muted-2)", fontFamily: "var(--font-body)" }}>
+                Got a dataset idea, a bug, or just want to say hi? I read everything.
+              </p>
+            </Reveal>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── CTA ───────────────────────────────────────────────────────────────────────
 
 function CTA() {
@@ -876,9 +1252,9 @@ function CTA() {
               className="font-black tracking-tight leading-tight"
               style={{ fontSize: "clamp(2.2rem, 5vw, 4rem)", fontFamily: "var(--font-display)", letterSpacing: "-0.04em" }}
             >
-              Stop managing pipelines.
+              Stop scraping.
               <br />
-              <span style={{ color: "var(--accent-color)" }}>Start building.</span>
+              <span style={{ color: "var(--accent-color)" }}>Start building a source of truth.</span>
             </h2>
           </Reveal>
 
@@ -891,8 +1267,8 @@ function CTA() {
                 <Link href="/auth" className="vx-btn-primary">
                   Get started free <ArrowRight size={15} className="ml-1.5" />
                 </Link>
-                <Link href="/datasets" className="vx-btn-ghost">
-                  Browse datasets <ArrowUpRight size={14} className="ml-1.5" />
+                <Link href="#playground" className="vx-btn-ghost">
+                  Try the API <Play size={13} className="ml-1.5" />
                 </Link>
               </div>
             </div>
@@ -962,10 +1338,12 @@ export default function LandingPage() {
       <Hero />
       <ProblemSolution />
       <HowItWorks />
+      <Playground />
       <Features />
       <MCPSection />
       <DatasetsPreview />
       <Pricing />
+      <Journey />
       <CTA />
       <Footer />
     </>
