@@ -421,6 +421,8 @@ function HowItWorks() {
 
 // ── API Playground ────────────────────────────────────────────────────────────
 
+// ── API Playground ────────────────────────────────────────────────────────────
+
 type PlaygroundExample = {
   id: string;
   label: string;
@@ -557,16 +559,21 @@ function Playground() {
 
         <Reveal delay={60}>
           <div style={{ border: "1px solid var(--line-color)" }}>
-            {/* tabs */}
+            {/* tabs — horizontally scrollable, no wrap */}
             <div
-              className="flex flex-wrap items-center gap-0"
-              style={{ borderBottom: "1px solid var(--line-color)", background: "var(--card-alt)" }}
+              className="vx-tabs-scroll flex items-center gap-0 overflow-x-auto"
+              style={{
+                borderBottom: "1px solid var(--line-color)",
+                background: "var(--card-alt)",
+                scrollbarWidth: "none",
+                WebkitOverflowScrolling: "touch",
+              }}
             >
               {PLAYGROUND_EXAMPLES.map((ex) => (
                 <button
                   key={ex.id}
                   onClick={() => run(ex)}
-                  className="font-mono text-xs px-5 py-3 transition-colors duration-150"
+                  className="font-mono text-xs px-5 py-3 transition-colors duration-150 shrink-0"
                   style={{
                     color: active.id === ex.id ? "var(--accent-color)" : "var(--muted)",
                     borderRight: "1px solid var(--line-color)",
@@ -595,10 +602,10 @@ function Playground() {
                 </div>
                 <div
                   className="font-mono text-xs leading-relaxed p-4"
-                  style={{ background: "var(--bg)", border: "1px solid var(--line-color)" }}
+                  style={{ background: "var(--bg)", border: "1px solid var(--line-color)", overflowWrap: "anywhere" }}
                 >
-                  <p style={{ color: "var(--accent-color)" }}>{active.endpoint}</p>
-                  <p style={{ color: "var(--muted)" }}>{active.params}</p>
+                  <p style={{ color: "var(--accent-color)", overflowWrap: "anywhere" }}>{active.endpoint}</p>
+                  <p style={{ color: "var(--muted)", overflowWrap: "anywhere" }}>{active.params}</p>
                 </div>
                 <p className="mt-4 text-xs leading-relaxed" style={{ color: "var(--muted-2)", fontFamily: "var(--font-body)" }}>
                   Swap the dataset slug for any public dataset in the marketplace. Filter, sort, paginate, and choose your format, all via query params.
@@ -615,7 +622,7 @@ function Playground() {
                   </span>
                 </div>
                 <pre
-                  className="font-mono text-xs leading-relaxed p-4 overflow-x-auto"
+                  className="font-mono text-xs leading-relaxed p-4"
                   style={{
                     background: "var(--bg)",
                     border: "1px solid var(--line-color)",
@@ -623,6 +630,8 @@ function Playground() {
                     minHeight: "220px",
                     opacity: shown ? 1 : 0.3,
                     transition: "opacity 0.2s ease",
+                    whiteSpace: "pre-wrap",
+                    overflowWrap: "anywhere",
                   }}
                 >
 {active.response}
@@ -1326,6 +1335,7 @@ export default function LandingPage() {
           padding: 0.65rem 1.4rem; border: 1px solid var(--line-color);
           cursor: pointer; transition: border-color 0.15s; white-space: nowrap;
         }
+        .vx-tabs-scroll::-webkit-scrollbar { display: none; }
         .vx-btn-outline:hover { border-color: var(--muted); }
       `}</style>
 
