@@ -8,7 +8,7 @@ import {
   Webhook, FileJson, Bot, Terminal, Play,
   Coffee, Sparkles, MessageCircle,
 } from "lucide-react";
-import { SiGithub, SiX, SiLinkedin } from "@icons-pack/react-simple-icons";
+import { FaGithub, FaLinkedin, FaXTwitter } from "react-icons/fa6";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -1097,21 +1097,21 @@ function Pricing() {
 
 const SOCIAL_LINKS = [
   {
-    icon: <SiX size={15} />,
+    icon: <FaXTwitter size={15} />,
     label: "X / Twitter",
     handle: "@vexaro_hq",
     href: "https://x.com/vexaro_hq",
     detail: "Build logs, ships, and the occasional rant about anti-bot systems.",
   },
   {
-    icon: <SiGithub size={15} />,
+    icon: <FaGithub size={15} />,
     label: "GitHub",
     handle: "@vexaro",
     href: "https://github.com/vexaro",
     detail: "Open issues, request features, or just watch the commits roll in.",
   },
   {
-    icon: <SiLinkedin size={15} />,
+    icon: <FaLinkedin size={15} />,
     label: "LinkedIn",
     handle: "Vexaro",
     href: "https://linkedin.com/company/vexaro",
