@@ -6,9 +6,9 @@ import {
   RefreshCw, Key, Zap, ArrowRight, Check,
   Globe, Shield, ChevronRight, ArrowUpRight,
   Webhook, FileJson, Bot, Terminal, Play,
-  Github, Twitter, Linkedin, Coffee, Sparkles,
-  MessageCircle,
+  Coffee, Sparkles, MessageCircle,
 } from "lucide-react";
+import { SiGithub, SiX, SiLinkedin } from "@icons-pack/react-simple-icons";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -1097,21 +1097,21 @@ function Pricing() {
 
 const SOCIAL_LINKS = [
   {
-    icon: <Twitter size={15} />,
+    icon: <SiX size={15} />,
     label: "X / Twitter",
     handle: "@vexaro_hq",
     href: "https://x.com/vexaro_hq",
     detail: "Build logs, ships, and the occasional rant about anti-bot systems.",
   },
   {
-    icon: <Github size={15} />,
+    icon: <SiGithub size={15} />,
     label: "GitHub",
     handle: "@vexaro",
     href: "https://github.com/vexaro",
     detail: "Open issues, request features, or just watch the commits roll in.",
   },
   {
-    icon: <Linkedin size={15} />,
+    icon: <SiLinkedin size={15} />,
     label: "LinkedIn",
     handle: "Vexaro",
     href: "https://linkedin.com/company/vexaro",
