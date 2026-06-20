@@ -24,7 +24,6 @@ const FREE_PLAN = {
     "20 URLs per dataset",
     "10 Serper-discovered URLs per dataset",
     "Nightly automatic refresh",
-    "On-demand refresh via ping URL",
     "MCP access included",
     "Full diff viewer & one-click rollback",
     "Full marketplace access",
