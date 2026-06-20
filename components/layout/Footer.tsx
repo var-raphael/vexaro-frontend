@@ -13,7 +13,6 @@ export function Footer() {
 
         <div className="flex flex-col sm:items-end gap-1">
           <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Vexaro. All rights reserved.</p>
-          <p className="text-xs font-mono text-muted-foreground">v0.1.0</p>
         </div>
       </div>
     </footer>
