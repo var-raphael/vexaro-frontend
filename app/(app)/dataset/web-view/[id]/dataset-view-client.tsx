@@ -1080,29 +1080,43 @@ export function DatasetViewClient({ id, initialDataset }: DatasetViewClientProps
                         <span className="text-xs text-muted-foreground shrink-0 whitespace-nowrap">{timeAgo(v.created_at)}</span>
                       </div>
 
-                      {(hasAlt || isOwner) && (
-                        <div className="flex items-center gap-1.5 flex-wrap pl-9" onClick={(e) => e.stopPropagation()}>
-                          {hasAlt && (
-                            <Button
-                              variant="outline" size="sm"
-                              onClick={() => router.push(`/alternate/view-web/${datasetId}?version=${v.version_number}`)}
-                              className="text-xs h-7 px-2.5 gap-1 border-purple-500/30 text-purple-400 hover:border-purple-500/50 hover:text-purple-300 whitespace-nowrap"
-                            >
-                              <Sparkles size={11} /> View Alt
-                            </Button>
-                          )}
-                          {isOwner && (
-                            <Button
-                              variant="outline" size="sm"
-                              onClick={(e) => handleAlternateClick(e, v)}
-                              className="text-xs h-7 px-2.5 gap-1 border-border hover:border-primary/40 hover:text-primary whitespace-nowrap"
-                            >
-                              <GitFork size={11} />
-                              {hasAlt ? "Replace Alt" : "Create Alt"}
-                            </Button>
-                          )}
-                        </div>
-                      )}
+{(hasAlt || isOwner) && (
+  <div className="flex items-center gap-1.5 flex-wrap pl-9" onClick={(e) => e.stopPropagation()}>
+    {hasAlt && (
+      <Button
+        variant="outline" size="sm"
+        onClick={() => router.push(`/alternate/view-web/${datasetId}?version=${v.version_number}`)}
+        className="text-xs h-7 px-2.5 gap-1 border-purple-500/30 text-purple-400 hover:border-purple-500/50 hover:text-purple-300 whitespace-nowrap"
+      >
+        <Sparkles size={11} /> View Alt
+      </Button>
+    )}
+    {isOwner && (
+      dataset.status === "processing" || dataset.status === "frozen" ? (
+        <span className="flex items-center text-xs h-7 px-2.5 gap-1 text-muted-foreground/50 whitespace-nowrap">
+          <GitFork size={11} />
+          {hasAlt ? "Replace Alt" : "Create Alt"}
+          <Tooltip_
+            text={
+              dataset.status === "frozen"
+                ? "Unfreeze this dataset before creating or replacing an alternate."
+                : "Dataset is currently processing — alternates can't be created until it completes."
+            }
+          />
+        </span>
+      ) : (
+        <Button
+          variant="outline" size="sm"
+          onClick={(e) => handleAlternateClick(e, v)}
+          className="text-xs h-7 px-2.5 gap-1 border-border hover:border-primary/40 hover:text-primary whitespace-nowrap"
+        >
+          <GitFork size={11} />
+          {hasAlt ? "Replace Alt" : "Create Alt"}
+        </Button>
+      )
+    )}
+  </div>
+)}
                     </div>
                   );
                 })}

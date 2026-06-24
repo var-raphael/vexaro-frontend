@@ -19,7 +19,7 @@ import {
   Loader2, X, Globe, GitBranch, RefreshCw,
   Eye, Snowflake, RotateCcw, AlertTriangle, GitFork,
   MessageSquare, ArrowRight, Sparkles, Crown, Shield, Copy,
-  Key, Moon, Database, Radio,
+  Key, Moon, Database, Radio, Lock,
 } from "lucide-react";
 import { FaAmazon } from "react-icons/fa";
 import { cn } from "@/lib/utils";
@@ -53,6 +53,18 @@ interface Dataset {
   clone_count: number;
   api_hit_count: number;
   entity_count: number;
+}
+
+interface Plan {
+  plan: string;
+  plan_name: string;
+  datasets: number;
+  urls: number;
+  serp: number;
+  ping_url: boolean;
+  webhook: boolean;
+  pending_plan: string | null;
+  expires_at: string | null;
 }
 
 // ── Status config ─────────────────────────────────────────────────────────────
@@ -163,31 +175,30 @@ function NewDatasetModal({
   const router = useRouter();
 
   const active = [
-  {
-    key: "web",
-    icon: <Globe size={16} className="text-violet-400" />,
-    iconBg: "bg-violet-500/10 border-violet-500/20",
-    label: "Normal Web Data",
-    desc: "Scrape and pipeline any public URL or web source",
-    hover: "hover:border-violet-500/40 hover:bg-violet-500/5",
-    arrowHover: "group-hover:text-violet-400",
-    href: "/dataset/web-new",
-  },
-  {
-    key: "amazon",
-    icon: <FaAmazon size={16} className="text-amber-400" />,
-    iconBg: "bg-amber-500/10 border-amber-500/20",
-    label: "Amazon Data",
-    desc: "Products, prices, reviews and listings from Amazon",
-    hover: "hover:border-amber-500/40 hover:bg-amber-500/5",
-    arrowHover: "group-hover:text-amber-400",
-    href: "/dataset/amazon-new",
-  },
-];
+    {
+      key: "web",
+      icon: <Globe size={16} className="text-violet-400" />,
+      iconBg: "bg-violet-500/10 border-violet-500/20",
+      label: "Normal Web Data",
+      desc: "Scrape and pipeline any public URL or web source",
+      hover: "hover:border-violet-500/40 hover:bg-violet-500/5",
+      arrowHover: "group-hover:text-violet-400",
+      href: "/dataset/web-new",
+    },
+    {
+      key: "amazon",
+      icon: <FaAmazon size={16} className="text-amber-400" />,
+      iconBg: "bg-amber-500/10 border-amber-500/20",
+      label: "Amazon Data",
+      desc: "Products, prices, reviews and listings from Amazon",
+      hover: "hover:border-amber-500/40 hover:bg-amber-500/5",
+      arrowHover: "group-hover:text-amber-400",
+      href: "/dataset/amazon-new",
+    },
+  ];
 
-const upcoming: never[] = [];
+  const upcoming: never[] = [];
 
-  
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
       <Card className="bg-card border-border w-full max-w-md">
@@ -289,7 +300,6 @@ function DeleteModal({
             </div>
           </div>
 
-          {/* Public warning with clones */}
           {isPublic && hasClones && (
             <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-red-500/30 bg-red-500/5">
               <AlertTriangle size={13} className="text-red-400 shrink-0 mt-0.5" />
@@ -427,18 +437,35 @@ function PremiumBadge({ isAdminCurated }: { isAdminCurated: boolean }) {
 
 // ── Copy Button ───────────────────────────────────────────────────────────────
 
-function CopyButton({ value, icon: Icon, label, copiedLabel }: {
+function CopyButton({ value, icon: Icon, label, copiedLabel, disabled, disabledTooltip }: {
   value: string;
   icon: React.ElementType;
   label: string;
   copiedLabel: string;
+  disabled?: boolean;
+  disabledTooltip?: string;
 }) {
   const [copied, setCopied] = useState(false);
+
   function handle() {
+    if (disabled) return;
     navigator.clipboard.writeText(value);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
+
+  if (disabled) {
+    return (
+      <span
+        className="flex items-center gap-1 text-xs text-muted-foreground/40 cursor-not-allowed"
+        title={disabledTooltip}
+      >
+        <Lock size={11} />
+        <span>{label}</span>
+      </span>
+    );
+  }
+
   return (
     <button
       onClick={handle}
@@ -458,10 +485,12 @@ function CopyButton({ value, icon: Icon, label, copiedLabel }: {
 
 function DatasetCard({
   dataset,
+  plan,
   onEdit, onDelete, onFreeze, onRefresh, onRollback,
   onRegeneratePingKey, onRegeneratePrivateKey,
 }: {
   dataset: Dataset;
+  plan: Plan | null;
   onEdit: (d: Dataset) => void;
   onDelete: (d: Dataset) => void;
   onFreeze: (d: Dataset) => void;
@@ -474,9 +503,11 @@ function DatasetCard({
   const t = DATASET_TYPE_CONFIG[normalizeDatasetType(dataset.dataset_type)] ?? DATASET_TYPE_CONFIG["web"];
   const TypeIcon = t.icon;
   const isProcessing = dataset.status === "processing";
+  const isFrozen = dataset.is_frozen;
   const hasVersions = dataset.versions.length > 0;
   const isAdminCurated = dataset.is_premium && !dataset.is_cloned;
   const isPrivate = dataset.visibility === "private";
+  const hasPingURL = plan?.ping_url ?? false;
 
   const viewHref = dataset.dataset_type === "reddit"
     ? `/dataset/reddit-view/${dataset.dataset_id}`
@@ -543,51 +574,120 @@ function DatasetCard({
                   <MoreVertical size={14} />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-card border-border w-44">
-                <DropdownMenuItem onClick={() => onEdit(dataset)} className="text-xs text-muted-foreground hover:text-foreground cursor-pointer gap-2">
+              <DropdownMenuContent align="end" className="bg-card border-border w-48">
+
+                {/* Edit */}
+                <DropdownMenuItem
+                  onClick={() => !isProcessing && !isFrozen && onEdit(dataset)}
+                  disabled={isProcessing || isFrozen}
+                  className={cn(
+                    "text-xs cursor-pointer gap-2",
+                    isProcessing || isFrozen
+                      ? "text-muted-foreground/40 cursor-not-allowed"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
                   <Pencil size={13} /> Edit
                 </DropdownMenuItem>
+
+                {/* Refresh — blocked if processing or frozen */}
                 <DropdownMenuItem
-                  onClick={() => !isProcessing && onRefresh(dataset)}
-                  disabled={isProcessing}
-                  className={cn("text-xs cursor-pointer gap-2", isProcessing ? "text-muted-foreground/40 cursor-not-allowed" : "text-muted-foreground hover:text-foreground")}
+                  onClick={() => !isProcessing && !isFrozen && onRefresh(dataset)}
+                  disabled={isProcessing || isFrozen}
+                  className={cn(
+                    "text-xs cursor-pointer gap-2",
+                    isProcessing || isFrozen
+                      ? "text-muted-foreground/40 cursor-not-allowed"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
                 >
                   <RefreshCw size={13} /> Refresh
                 </DropdownMenuItem>
+
+                {/* Rollback */}
                 <DropdownMenuItem
-                  onClick={() => hasVersions && onRollback(dataset)}
-                  disabled={!hasVersions}
-                  className={cn("text-xs cursor-pointer gap-2", !hasVersions ? "text-muted-foreground/40 cursor-not-allowed" : "text-muted-foreground hover:text-foreground")}
+                  onClick={() => !isProcessing && hasVersions && onRollback(dataset)}
+                  disabled={isProcessing || !hasVersions}
+                  className={cn(
+                    "text-xs cursor-pointer gap-2",
+                    isProcessing || !hasVersions
+                      ? "text-muted-foreground/40 cursor-not-allowed"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
                 >
                   <RotateCcw size={13} /> Rollback
                 </DropdownMenuItem>
+
+                {/* Freeze */}
                 <DropdownMenuItem
                   onClick={() => !isProcessing && onFreeze(dataset)}
                   disabled={isProcessing}
-                  className={cn("text-xs cursor-pointer gap-2", isProcessing ? "text-muted-foreground/40 cursor-not-allowed" : "text-muted-foreground hover:text-foreground")}
+                  className={cn(
+                    "text-xs cursor-pointer gap-2",
+                    isProcessing
+                      ? "text-muted-foreground/40 cursor-not-allowed"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
                 >
-                  <Snowflake size={13} /> {dataset.is_frozen ? "Unfreeze" : "Freeze"}
+                  <Snowflake size={13} /> {isFrozen ? "Unfreeze" : "Freeze"}
                 </DropdownMenuItem>
-                
+
                 <DropdownMenuSeparator className="bg-border" />
-<DropdownMenuItem
-  onClick={() => onRegeneratePingKey(dataset)}
-  className="text-xs text-muted-foreground hover:text-foreground cursor-pointer gap-2"
->
-  <RefreshCw size={13} /> Regenerate Ping Key
-</DropdownMenuItem>
-{dataset.visibility === "private" && (
-  <DropdownMenuItem
-    onClick={() => onRegeneratePrivateKey(dataset)}
-    className="text-xs text-muted-foreground hover:text-foreground cursor-pointer gap-2"
-  >
-    <Key size={13} /> Regenerate API Key
-  </DropdownMenuItem>
-)}
+
+                {/* Regenerate Ping Key — gated behind plan.ping_url */}
+                {hasPingURL ? (
+                  <DropdownMenuItem
+                    onClick={() => onRegeneratePingKey(dataset)}
+                    className="text-xs text-muted-foreground hover:text-foreground cursor-pointer gap-2"
+                  >
+                    <RefreshCw size={13} /> Regenerate Ping Key
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    disabled
+                    className="text-xs text-muted-foreground/40 cursor-not-allowed gap-2"
+                    title="Upgrade to Starter plan"
+                  >
+                    <Lock size={13} /> Regenerate Ping Key
+                  </DropdownMenuItem>
+                )}
+
+                {/* Regenerate API Key — private datasets + plan gate */}
+                {dataset.visibility === "private" && (
+                  hasPingURL ? (
+                    <DropdownMenuItem
+                      onClick={() => onRegeneratePrivateKey(dataset)}
+                      className="text-xs text-muted-foreground hover:text-foreground cursor-pointer gap-2"
+                    >
+                      <Key size={13} /> Regenerate API Key
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      disabled
+                      className="text-xs text-muted-foreground/40 cursor-not-allowed gap-2"
+                      title="Upgrade to Starter plan"
+                    >
+                      <Lock size={13} /> Regenerate API Key
+                    </DropdownMenuItem>
+                  )
+                )}
+
                 <DropdownMenuSeparator className="bg-border" />
-                <DropdownMenuItem onClick={() => onDelete(dataset)} className="text-xs text-red-400 hover:text-red-300 focus:text-red-300 focus:bg-red-500/10 cursor-pointer gap-2">
+
+                {/* Delete */}
+                <DropdownMenuItem
+                  onClick={() => !isProcessing && onDelete(dataset)}
+                  disabled={isProcessing}
+                  className={cn(
+                    "text-xs cursor-pointer gap-2",
+                    isProcessing
+                      ? "text-muted-foreground/40 cursor-not-allowed"
+                      : "text-red-400 hover:text-red-300 focus:text-red-300 focus:bg-red-500/10"
+                  )}
+                >
                   <Trash2 size={13} /> Delete
                 </DropdownMenuItem>
+
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -653,7 +753,7 @@ function DatasetCard({
           ))}
         </div>
 
-        {/* Clone count row — public datasets only */}
+        {/* Clone count row */}
         {dataset.visibility === "public" && dataset.clone_count > 0 && (
           <div className="flex items-center gap-1.5 mb-3 px-2 py-1.5 rounded-md bg-accent/20 border border-border">
             <GitFork size={10} className="text-muted-foreground shrink-0" />
@@ -684,41 +784,55 @@ function DatasetCard({
 
             <span className="text-border">·</span>
 
+            {/* Ping copy — gated behind plan.ping_url */}
             <CopyButton
               value={pingURL}
               icon={Copy}
               label="Ping"
               copiedLabel="Copied!"
+              disabled={!hasPingURL}
+              disabledTooltip="Starter plan required"
             />
 
-                  {isPrivate && (
-                <>
+            {isPrivate && (
+              <>
                 <span className="text-border">·</span>
                 <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-slate-500/30 bg-slate-500/10 text-slate-400">
-               <Shield size={9} /> private
-              </span>
-           {dataset.private_key && (
-                <CopyButton
-                value={dataset.private_key}
-                icon={Key}
-                label="API key"
-                copiedLabel="Copied!"
-              />
-          )}
-  </>
+                  <Shield size={9} /> private
+                </span>
+                {dataset.private_key && (
+                  <CopyButton
+                    value={dataset.private_key}
+                    icon={Key}
+                    label="API key"
+                    copiedLabel="Copied!"
+                  />
                 )}
+              </>
+            )}
           </div>
 
-         <Link href={viewHref} onClick={(e) => dataset.status !== "active" && e.preventDefault()}>
-  <Button
-    size="sm"
-    variant="outline"
-    disabled={dataset.status !== "active"}
-    className="h-7 text-xs gap-1.5 border-border hover:border-primary/40 hover:text-primary bg-transparent disabled:opacity-40 disabled:cursor-not-allowed"
-  >
-    <Eye size={11} /> View
-  </Button>
-</Link>
+          {/* View button — only active datasets */}
+          {isProcessing ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled
+              className="h-7 text-xs gap-1.5 border-border bg-transparent disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Loader2 size={11} className="animate-spin" /> Processing
+            </Button>
+          ) : (
+            <Link href={viewHref}>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs gap-1.5 border-border hover:border-primary/40 hover:text-primary bg-transparent"
+              >
+                <Eye size={11} /> View
+              </Button>
+            </Link>
+          )}
         </div>
 
       </CardContent>
@@ -740,54 +854,64 @@ export default function DatasetsPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [datasets, setDatasets] = useState<Dataset[]>([]);
+  const [plan, setPlan] = useState<Plan | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState<ModalState>({ type: "none" });
 
-  const fetchDatasets = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     if (!user?.id) {
       setLoading(false);
       return;
     }
     try {
-      const res = await callBackend(`/datasets`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const normalized = (data.datasets ?? []).map((d: any) => ({
-        ...d,
-        alias: d.alias || d.name,
-        dataset_type: normalizeDatasetType(d.dataset_type),
-        status: normalizeStatus(d.status),
-        version: d.version ?? 0,
-        versions: d.versions ?? [],
-        has_alt: d.has_alt ?? false,
-        is_premium: d.is_premium ?? false,
-        nightly: d.nightly ?? false,
-        ping_key: d.ping_key ?? "",
-        private_key: d.private_key ?? "",
-        clone_count: d.clone_count ?? 0,
-        api_hit_count: d.api_hit_count ?? 0,
-        entity_count: d.entity_count ?? 0,
-      }));
-      setDatasets(normalized);
+      const [datasetsRes, planRes] = await Promise.all([
+        callBackend(`/datasets`),
+        callBackend(`/billing/status`),
+      ]);
+
+      if (datasetsRes.ok) {
+        const data = await datasetsRes.json();
+        const normalized = (data.datasets ?? []).map((d: any) => ({
+          ...d,
+          alias: d.alias || d.name,
+          dataset_type: normalizeDatasetType(d.dataset_type),
+          status: normalizeStatus(d.status),
+          version: d.version ?? 0,
+          versions: d.versions ?? [],
+          has_alt: d.has_alt ?? false,
+          is_premium: d.is_premium ?? false,
+          nightly: d.nightly ?? false,
+          ping_key: d.ping_key ?? "",
+          private_key: d.private_key ?? "",
+          clone_count: d.clone_count ?? 0,
+          api_hit_count: d.api_hit_count ?? 0,
+          entity_count: d.entity_count ?? 0,
+        }));
+        setDatasets(normalized);
+      }
+
+      if (planRes.ok) {
+        const planData = await planRes.json();
+        setPlan(planData);
+      }
     } catch (err) {
-      console.error("fetch datasets error:", err);
+      console.error("fetch error:", err);
     } finally {
       setLoading(false);
     }
   }, [user?.id]);
 
   useEffect(() => {
-  fetchDatasets();
-}, [fetchDatasets]);
+    fetchData();
+  }, [fetchData]);
 
-useEffect(() => {
-  const hasProcessing = datasets.some((d) => d.status === "processing");
-  if (!hasProcessing) return;
-
-  const interval = setInterval(fetchDatasets, 10000);
-  return () => clearInterval(interval);
-}, [datasets, fetchDatasets]);
+  useEffect(() => {
+    const hasProcessing = datasets.some((d) => d.status === "processing");
+    if (!hasProcessing) return;
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
+  }, [datasets, fetchData]);
 
   const active = datasets.filter((d) => d.status === "active").length;
   const cloned = datasets.filter((d) => d.is_cloned).length;
@@ -809,9 +933,9 @@ useEffect(() => {
   async function handleDelete(dataset: Dataset) {
     try {
       await callBackend(`/dataset/delete`, {
-  method: "DELETE",
-  body: JSON.stringify({ dataset_id: dataset.dataset_id }),
-});
+        method: "DELETE",
+        body: JSON.stringify({ dataset_id: dataset.dataset_id }),
+      });
       setDatasets((prev) => prev.filter((d) => d.dataset_id !== dataset.dataset_id));
     } catch (err) {
       console.error("delete error:", err);
@@ -823,9 +947,9 @@ useEffect(() => {
   async function handleFreeze(dataset: Dataset) {
     try {
       await callBackend(`/dataset/freeze`, {
-  method: "POST",
-  body: JSON.stringify({ dataset_id: dataset.dataset_id, freeze: !dataset.is_frozen }),
-});
+        method: "POST",
+        body: JSON.stringify({ dataset_id: dataset.dataset_id, freeze: !dataset.is_frozen }),
+      });
       setDatasets((prev) =>
         prev.map((d) =>
           d.dataset_id === dataset.dataset_id
@@ -843,9 +967,9 @@ useEffect(() => {
   async function handleRefresh(dataset: Dataset) {
     try {
       await callBackend(`/dataset/refresh`, {
-  method: "POST",
-  body: JSON.stringify({ dataset_id: dataset.dataset_id }),
-});
+        method: "POST",
+        body: JSON.stringify({ dataset_id: dataset.dataset_id }),
+      });
       setDatasets((prev) =>
         prev.map((d) =>
           d.dataset_id === dataset.dataset_id ? { ...d, status: "processing" } : d
@@ -860,11 +984,10 @@ useEffect(() => {
 
   async function handleRollback(dataset: Dataset, version: number, freeze: boolean) {
     try {
-      // NEW
-await callBackend(`/dataset/rollback`, {
-  method: "POST",
-  body: JSON.stringify({ dataset_id: dataset.dataset_id, version_number: version, freeze }),
-});
+      await callBackend(`/dataset/rollback`, {
+        method: "POST",
+        body: JSON.stringify({ dataset_id: dataset.dataset_id, version_number: version, freeze }),
+      });
       setDatasets((prev) =>
         prev.map((d) =>
           d.dataset_id === dataset.dataset_id
@@ -879,47 +1002,46 @@ await callBackend(`/dataset/rollback`, {
     }
   }
 
-
-async function handleRegeneratePingKey(dataset: Dataset) {
-  try {
-    // NEW
-const res = await callBackend(`/dataset/regenerate/ping-key`, {
-  method: "POST",
-  body: JSON.stringify({ dataset_id: dataset.dataset_id }),
-});
-    const data = await res.json();
-    if (data.ok) {
-      setDatasets((prev) =>
-        prev.map((d) =>
-          d.dataset_id === dataset.dataset_id ? { ...d, ping_key: data.ping_key } : d
-        )
-      );
-      navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_API_URL}/ping/${data.ping_key}`);
+  async function handleRegeneratePingKey(dataset: Dataset) {
+    try {
+      const res = await callBackend(`/dataset/regenerate/ping-key`, {
+        method: "POST",
+        body: JSON.stringify({ dataset_id: dataset.dataset_id }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setDatasets((prev) =>
+          prev.map((d) =>
+            d.dataset_id === dataset.dataset_id ? { ...d, ping_key: data.ping_key } : d
+          )
+        );
+        navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_API_URL}/ping/${data.ping_key}`);
+      }
+    } catch (err) {
+      console.error("regenerate ping key error:", err);
     }
-  } catch (err) {
-    console.error("regenerate ping key error:", err);
   }
-}
 
-async function handleRegeneratePrivateKey(dataset: Dataset) {
-  try {
-    const res = await callBackend(`/dataset/regenerate/private-key`, {
-  method: "POST",
-  body: JSON.stringify({ dataset_id: dataset.dataset_id }),
-});
-    const data = await res.json();
-    if (data.ok) {
-      setDatasets((prev) =>
-        prev.map((d) =>
-          d.dataset_id === dataset.dataset_id ? { ...d, private_key: data.private_key } : d
-        )
-      );
-      navigator.clipboard.writeText(data.private_key);
+  async function handleRegeneratePrivateKey(dataset: Dataset) {
+    try {
+      const res = await callBackend(`/dataset/regenerate/private-key`, {
+        method: "POST",
+        body: JSON.stringify({ dataset_id: dataset.dataset_id }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setDatasets((prev) =>
+          prev.map((d) =>
+            d.dataset_id === dataset.dataset_id ? { ...d, private_key: data.private_key } : d
+          )
+        );
+        navigator.clipboard.writeText(data.private_key);
+      }
+    } catch (err) {
+      console.error("regenerate private key error:", err);
     }
-  } catch (err) {
-    console.error("regenerate private key error:", err);
   }
-}
+
   return (
     <div className="max-w-6xl mx-auto px-5 md:px-8 py-10">
       {modal.type === "new-dataset" && (
@@ -1006,21 +1128,22 @@ async function handleRegeneratePrivateKey(dataset: Dataset) {
       ) : filtered.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((d) => (
-<DatasetCard
-  key={d.dataset_id}
-  dataset={d}
-  onEdit={(d) => {
-    if (d.dataset_type === "reddit") router.push(`/dataset/reddit-edit/${d.dataset_id}`);
-    else if (d.dataset_type === "amazon") router.push(`/dataset/amazon-edit/${d.dataset_id}`);
-    else router.push(`/dataset/web-edit/${d.dataset_id}`);
-  }}
-  onDelete={(d) => setModal({ type: "delete", dataset: d })}
-  onFreeze={(d) => setModal({ type: "freeze", dataset: d })}
-  onRefresh={(d) => setModal({ type: "refresh", dataset: d })}
-  onRollback={(d) => setModal({ type: "rollback", dataset: d })}
-  onRegeneratePingKey={handleRegeneratePingKey}
-  onRegeneratePrivateKey={handleRegeneratePrivateKey}
-/>
+            <DatasetCard
+              key={d.dataset_id}
+              dataset={d}
+              plan={plan}
+              onEdit={(d) => {
+                if (d.dataset_type === "reddit") router.push(`/dataset/reddit-edit/${d.dataset_id}`);
+                else if (d.dataset_type === "amazon") router.push(`/dataset/amazon-edit/${d.dataset_id}`);
+                else router.push(`/dataset/web-edit/${d.dataset_id}`);
+              }}
+              onDelete={(d) => setModal({ type: "delete", dataset: d })}
+              onFreeze={(d) => setModal({ type: "freeze", dataset: d })}
+              onRefresh={(d) => setModal({ type: "refresh", dataset: d })}
+              onRollback={(d) => setModal({ type: "rollback", dataset: d })}
+              onRegeneratePingKey={handleRegeneratePingKey}
+              onRegeneratePrivateKey={handleRegeneratePrivateKey}
+            />
           ))}
         </div>
       ) : (

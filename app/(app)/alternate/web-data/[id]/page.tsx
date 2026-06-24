@@ -15,7 +15,6 @@ import Editor from "react-simple-code-editor";
 import { highlight, languages } from "prismjs/components/prism-core";
 import "prismjs/components/prism-json";
 import "prismjs/themes/prism-tomorrow.css";
-import { useAuth } from "@/context/AuthContext";
 import { callBackend } from "@/lib/api";
 
 interface Entity {
@@ -30,6 +29,8 @@ interface WebDataset {
   generated_at: string;
   entities: Entity[];
 }
+
+type DatasetStatus = "active" | "frozen" | "processing";
 
 const PAGE_SIZE = 25;
 
@@ -111,12 +112,8 @@ function UploadModal({
   ? data 
   : Array.isArray(data?.entities) 
   ? data.entities 
-  : null;
-      if (!entities) {
-        setParseError("Invalid format — upload the result file as downloaded from Vexaro.");
-        setParsing(false);
-        return;
-      }
+  : [data];
+  
       if (entities.length === 0) {
         setParseError("'entities' array is empty — must contain at least one entity.");
         setParsing(false);
@@ -354,7 +351,6 @@ export default function WebAlternatePage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
 
   const datasetId = params?.id as string;
   const version = Number(searchParams.get("version") ?? "1");
@@ -371,81 +367,123 @@ export default function WebAlternatePage() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [status, setStatus] = useState<DatasetStatus | null>(null);
+  const [statusLoaded, setStatusLoaded] = useState(false);
+  const [lockedNotice, setLockedNotice] = useState<string | null>(null);
 
   const storageKey = `alternate-web-${datasetId}-v${version}`;
   const totalPages = Math.ceil(allEntities.length / PAGE_SIZE);
+  const isLocked = status === "processing" || status === "frozen";
+
+  const lockReason =
+    status === "frozen"
+      ? "Dataset is frozen — unfreeze it from the dashboard to save."
+      : status === "processing"
+      ? "Dataset is currently processing — please wait until it completes."
+      : null;
+
+  // Fetch status first — the load effect below needs to know this before
+  // deciding whether it's safe to auto-create an alt on a 404.
+  useEffect(() => {
+    async function loadStatus() {
+      try {
+        const res = await callBackend(`/dataset/view?dataset_id=${datasetId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setStatus(data.status ?? null);
+        }
+      } catch (e) {
+        console.error("Network error loading dataset status:", e);
+      } finally {
+        setStatusLoaded(true);
+      }
+    }
+    loadStatus();
+  }, [datasetId]);
 
   useEffect(() => {
-  async function load() {
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/dataset/alternate/result?dataset_id=${datasetId}&version_id=${version}&page=1&limit=99999`
-      );
+    if (!statusLoaded) return; // wait for status before deciding the 404 path
 
-      if (res.status === 404) {
-        // No alt exists yet — create one from the original
-        const originalRes = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/dataset/result?dataset_id=${datasetId}&version_id=${version}&page=1&limit=99999`
+    async function load() {
+      try {
+        const res = await callBackend(
+          `/dataset/alternate/result?dataset_id=${datasetId}&version_id=${version}&page=1&limit=99999`
         );
-        if (!originalRes.ok) return;
-        const originalData = await originalRes.json();
-        const originalEntities = originalData.entities ?? [];
 
-        await callBackend(`/dataset/alternate/save`, {
-  method: "POST",
-  body: JSON.stringify({
-    dataset_id: Number(datasetId),
-    version,
-    entities: originalEntities,
-  }),
-});
+        if (res.status === 404) {
+          // No alt exists yet — would normally create one from the original,
+          // but that write hits the same processing/frozen gate on the backend.
+          if (isLocked) {
+            setLockedNotice(
+              status === "frozen"
+                ? "No alternate exists yet, and this dataset is frozen — unfreeze it from the dashboard before an alternate can be created."
+                : "No alternate exists yet, and this dataset is currently processing — please wait until it completes."
+            );
+            return;
+          }
+
+          const originalRes = await callBackend(
+            `/dataset/result?dataset_id=${datasetId}&version_id=${version}&page=1&limit=99999`
+          );
+          if (!originalRes.ok) return;
+          const originalData = await originalRes.json();
+          const originalEntities = originalData.entities ?? [];
+
+          await callBackend(`/dataset/alternate/save`, {
+            method: "POST",
+            body: JSON.stringify({
+              dataset_id: Number(datasetId),
+              version,
+              entities: originalEntities,
+            }),
+          });
+          setDataset({
+            dataset_id: Number(datasetId),
+            data_name: `Dataset ${datasetId}`,
+            total: originalEntities.length,
+            created_at: new Date().toISOString(),
+            generated_at: new Date().toISOString(),
+            entities: originalEntities,
+          });
+
+          localStorage.removeItem(storageKey);
+          setAllEntities(originalEntities);
+          setPage(0);
+          setTextValue(JSON.stringify(originalEntities.slice(0, PAGE_SIZE), null, 2));
+          setParseError(null);
+          setIsDirty(false);
+          return;
+        }
+
+        if (!res.ok) {
+          console.error("Failed to load dataset:", await res.text());
+          return;
+        }
+
+        const data = await res.json();
+        const fetchedEntities: Entity[] = data.entities ?? [];
+
         setDataset({
           dataset_id: Number(datasetId),
-          data_name: `Dataset ${datasetId}`,
-          total: originalEntities.length,
+          data_name: data.data_name ?? `Dataset ${datasetId}`,
+          total: data.total ?? fetchedEntities.length,
           created_at: new Date().toISOString(),
           generated_at: new Date().toISOString(),
-          entities: originalEntities,
+          entities: fetchedEntities,
         });
 
         localStorage.removeItem(storageKey);
-        setAllEntities(originalEntities);
+        setAllEntities(fetchedEntities);
         setPage(0);
-        setTextValue(JSON.stringify(originalEntities.slice(0, PAGE_SIZE), null, 2));
+        setTextValue(JSON.stringify(fetchedEntities.slice(0, PAGE_SIZE), null, 2));
         setParseError(null);
         setIsDirty(false);
-        return;
+      } catch (e) {
+        console.error("Network error loading dataset:", e);
       }
-
-      if (!res.ok) {
-        console.error("Failed to load dataset:", await res.text());
-        return;
-      }
-
-      const data = await res.json();
-      const fetchedEntities: Entity[] = data.entities ?? [];
-
-      setDataset({
-        dataset_id: Number(datasetId),
-        data_name: data.data_name ?? `Dataset ${datasetId}`,
-        total: data.total ?? fetchedEntities.length,
-        created_at: new Date().toISOString(),
-        generated_at: new Date().toISOString(),
-        entities: fetchedEntities,
-      });
-
-      localStorage.removeItem(storageKey);
-      setAllEntities(fetchedEntities);
-      setPage(0);
-      setTextValue(JSON.stringify(fetchedEntities.slice(0, PAGE_SIZE), null, 2));
-      setParseError(null);
-      setIsDirty(false);
-    } catch (e) {
-      console.error("Network error loading dataset:", e);
     }
-  }
-  load();
-}, [datasetId, storageKey, version]);
+    load();
+  }, [datasetId, storageKey, version, statusLoaded, isLocked, status]);
 
   useEffect(() => {
     const slice = allEntities.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -472,6 +510,12 @@ export default function WebAlternatePage() {
   }
 
   function handleUploadConfirm(entities: Entity[]) {
+    if (isLocked) {
+      // Defensive — the button that opens this modal is disabled while
+      // locked, but guard here too in case status changed mid-session.
+      setShowUploadModal(false);
+      return;
+    }
     setShowUploadModal(false);
     localStorage.removeItem(storageKey);
     setAllEntities(entities);
@@ -487,12 +531,12 @@ export default function WebAlternatePage() {
     setDeleteError(null);
     try {
       const res = await callBackend(`/dataset/alternate/delete`, {
-  method: "DELETE",
-  body: JSON.stringify({
-    dataset_id: Number(datasetId),
-    version,
-  }),
-});
+        method: "DELETE",
+        body: JSON.stringify({
+          dataset_id: Number(datasetId),
+          version,
+        }),
+      });
       if (!res.ok) {
         const text = await res.text();
         setDeleteError(text || "Delete failed");
@@ -510,17 +554,17 @@ export default function WebAlternatePage() {
   }
 
   async function handleSave() {
-    if (parseError || !user) return;
+    if (parseError || isLocked) return;
     setSaveError(null);
     try {
       const res = await callBackend(`/dataset/alternate/save`, {
-  method: "POST",
-  body: JSON.stringify({
-    dataset_id: Number(datasetId),
-    version,
-    entities: allEntities,
-  }),
-});
+        method: "POST",
+        body: JSON.stringify({
+          dataset_id: Number(datasetId),
+          version,
+          entities: allEntities,
+        }),
+      });
       if (!res.ok) {
         const text = await res.text();
         setSaveError(text || "Save failed");
@@ -530,9 +574,25 @@ export default function WebAlternatePage() {
       setSaved(true);
       setIsDirty(false);
       setTimeout(() => setSaved(false), 2500);
-    } catch {
-      setSaveError("Network error — could not reach server");
+    } catch (e) {
+      if (e instanceof Error && e.message === "Not authenticated") {
+        setSaveError("Please log in to save changes.");
+      } else {
+        setSaveError("Network error — could not reach server");
+      }
     }
+  }
+
+  if (lockedNotice) {
+    return (
+      <div className="max-w-2xl mx-auto px-5 py-20 text-center space-y-4">
+        <AlertCircle size={28} className="text-muted-foreground mx-auto" />
+        <p className="text-sm text-muted-foreground">{lockedNotice}</p>
+        <Button variant="outline" size="sm" onClick={() => router.back()} className="text-xs">
+          Back
+        </Button>
+      </div>
+    );
   }
 
   if (!dataset) {
@@ -604,14 +664,22 @@ export default function WebAlternatePage() {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowUploadModal(true)}
-                className="text-xs h-8 gap-1.5 border-border hover:border-primary/40 hover:text-primary"
-              >
-                <Upload size={12} /> Upload JSON
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowUploadModal(true)}
+                  disabled={isLocked}
+                  className="text-xs h-8 gap-1.5 border-border hover:border-primary/40 hover:text-primary disabled:opacity-50"
+                >
+                  <Upload size={12} /> Upload JSON
+                </Button>
+                {isLocked && lockReason && (
+                  <span className="text-xs text-muted-foreground max-w-[200px] leading-snug">
+                    {lockReason}
+                  </span>
+                )}
+              </div>
 
               <Button
                 variant="outline"
@@ -623,16 +691,23 @@ export default function WebAlternatePage() {
                 <Trash2 size={12} /> Delete alternate
               </Button>
 
-              <Button
-                size="sm"
-                onClick={handleSave}
-                disabled={!!parseError || !user}
-                className="text-xs h-8 gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50"
-              >
-                {saved
-                  ? <><CheckCircle2 size={12} /> Saved</>
-                  : <><Save size={12} /> Save</>}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={!!parseError || isLocked}
+                  className="text-xs h-8 gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50"
+                >
+                  {saved
+                    ? <><CheckCircle2 size={12} /> Saved</>
+                    : <><Save size={12} /> Save</>}
+                </Button>
+                {isLocked && lockReason && (
+                  <span className="text-xs text-muted-foreground max-w-[220px] leading-snug">
+                    {lockReason}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -654,9 +729,10 @@ export default function WebAlternatePage() {
         >
           <Editor
             value={textValue}
-            onValueChange={handleTextChange}
+            onValueChange={isLocked ? () => {} : handleTextChange}
             highlight={(code) => highlight(code, languages.json, "json")}
             padding={16}
+            disabled={isLocked}
             style={{
               fontFamily: '"Fira Code", "Fira Mono", monospace',
               fontSize: 12,
@@ -664,10 +740,14 @@ export default function WebAlternatePage() {
               backgroundColor: "transparent",
               minHeight: "70vh",
               caretColor: "#fff",
+              opacity: isLocked ? 0.6 : 1,
             }}
             textareaClassName="focus:outline-none"
           />
         </div>
+        {isLocked && lockReason && (
+          <p className="text-xs text-muted-foreground -mt-2">{lockReason}</p>
+        )}
 
         {parseError && (
           <div className="flex items-start gap-1.5 bg-red-950/60 border border-red-500/30 rounded px-3 py-2">

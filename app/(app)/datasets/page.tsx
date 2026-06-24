@@ -109,6 +109,7 @@ function CloneModal({ dataset, open, onClose }: CloneModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [extractDescription, setExtractDescription] = useState("");
+  const [cloneError, setCloneError] = useState<string | null>(null);
   const [tag, setTag] = useState("");
   const [nightly, setNightly] = useState(false);
   const [visibility, setVisibility] = useState<"public" | "private">("private");
@@ -135,6 +136,7 @@ function CloneModal({ dataset, open, onClose }: CloneModalProps) {
       setConfirmWord("");
       setCloning(false);
       setExtractError(null);
+      setCloneError(null);
     }
   }, [open, dataset]);
 
@@ -164,34 +166,37 @@ function CloneModal({ dataset, open, onClose }: CloneModalProps) {
   }
 
   async function handleClone() {
-    if (!dataset) return;
-    setCloning(true);
-    try {
-      const res = await callBackend(`/dataset/clone`, {
-  method: "POST",
-  body: JSON.stringify({
-    source_dataset_id: dataset.dataset_id,
-    name: name.trim(),
-    description: description.trim(),
-    extract_description: extractDescription.trim(),
-    tag: tag.trim(),
-    nightly: nightly ? "yes" : "no",
-    visibility,
-  }),
-});
-      const data = await res.json();
-      if (!res.ok) { console.error("clone failed:", data); return; }
-
-      onClose();
-      window.location.href = dataset.dataset_type === "reddit"
-        ? `/dataset/reddit-view/${data.new_dataset_id}`
-        : `/dataset/web-view/${data.new_dataset_id}`;
-    } catch (err) {
-      console.error("clone error:", err);
-    } finally {
-      setCloning(false);
+  if (!dataset) return;
+  setCloning(true);
+  setCloneError(null);
+  try {
+    const res = await callBackend(`/dataset/clone`, {
+      method: "POST",
+      body: JSON.stringify({
+        source_dataset_id: dataset.dataset_id,
+        name: name.trim(),
+        description: description.trim(),
+        extract_description: extractDescription.trim(),
+        tag: tag.trim(),
+        nightly: nightly ? "yes" : "no",
+        visibility,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setCloneError(data.error ?? "Clone failed. Please try again.");
+      return;
     }
+    onClose();
+    window.location.href = dataset.dataset_type === "reddit"
+      ? `/dataset/reddit-view/${data.new_dataset_id}`
+      : `/dataset/web-view/${data.new_dataset_id}`;
+  } catch (err) {
+    setCloneError("Something went wrong. Please try again.");
+  } finally {
+    setCloning(false);
   }
+}
 
   const extractLen = extractDescription.trim().length;
   const extractCountColor =
@@ -383,6 +388,13 @@ function CloneModal({ dataset, open, onClose }: CloneModalProps) {
                 )}
               />
             </div>
+            
+            {cloneError && (
+  <div className="flex items-start gap-2 px-3 py-2 rounded-md bg-red-950/60 border border-red-500/30">
+    <AlertTriangle size={12} className="text-red-400 shrink-0 mt-0.5" />
+    <p className="text-xs text-red-400">{cloneError}</p>
+  </div>
+)}
 
             <div className="flex gap-3 pt-1">
               <Button variant="outline" className="flex-1 border-border text-sm" onClick={() => setStep("form")} disabled={cloning}>

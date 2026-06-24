@@ -10,7 +10,7 @@ import { FaAmazon } from "react-icons/fa";
 import {
   Plus, Trash2, Globe, Lock, Moon, Tag,
   AlertCircle, Save, Loader2, Crown, DollarSign,
-  RotateCcw, XCircle, ChevronDown, ChevronUp,
+  RotateCcw, XCircle, ChevronDown, ChevronUp, Snowflake,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -18,6 +18,7 @@ import { callBackend } from "@/lib/api";
 
 type Visibility = "public" | "private";
 type NightlyRefresh = "yes" | "no";
+type DatasetStatus = "active" | "processing" | "frozen" | null;
 
 interface ExistingASIN {
   dataset_url_id: number;
@@ -136,6 +137,60 @@ function extractASIN(url: string): string {
   return parts[1].split("/")[0] ?? url;
 }
 
+// ── Locked State UI ───────────────────────────────────────────────────────────
+
+function LockedState({ status }: { status: "processing" | "frozen" }) {
+  const isProcessing = status === "processing";
+  return (
+    <div className="max-w-2xl mx-auto px-5 md:px-8 py-10">
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-1">
+          <FaAmazon size={14} className="text-amber-500" />
+          <p className="text-xs font-mono text-muted-foreground tracking-widest uppercase">Amazon Pipeline</p>
+        </div>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-1">
+          Edit <span className="text-amber-500">Amazon</span> Dataset
+        </h1>
+      </div>
+      <Card className="bg-card border-border">
+        <CardContent className="p-10 flex flex-col items-center justify-center text-center gap-4">
+          <div className={cn(
+            "w-14 h-14 rounded-2xl border flex items-center justify-center",
+            isProcessing
+              ? "bg-amber-500/10 border-amber-500/30"
+              : "bg-blue-500/10 border-blue-500/30"
+          )}>
+            {isProcessing
+              ? <Loader2 size={24} className="text-amber-500 animate-spin" />
+              : <Snowflake size={24} className="text-blue-400" />
+            }
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground">
+              {isProcessing ? "Dataset is currently processing" : "Dataset is frozen"}
+            </p>
+            <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
+              {isProcessing
+                ? "Editing is disabled. Please wait until processing completes."
+                : "Unfreeze it from the dashboard before editing."}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.history.back()}
+            className="mt-2 text-xs border-border text-muted-foreground hover:text-foreground"
+          >
+            Go Back
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function EditAmazonDatasetPage() {
   const router = useRouter();
   const params = useParams();
@@ -147,6 +202,7 @@ export default function EditAmazonDatasetPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [marketplace, setMarketplace] = useState<string>("com");
+  const [datasetStatus, setDatasetStatus] = useState<DatasetStatus>(null);
 
   const [existingASINs, setExistingASINs] = useState<ExistingASIN[]>([]);
   const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set());
@@ -180,6 +236,7 @@ export default function EditAmazonDatasetPage() {
         const data = await res.json();
 
         setMarketplace(data.marketplace ?? "com");
+        setDatasetStatus(data.status ?? null);
 
         const mapped: ExistingASIN[] = (data.urls ?? []).map((u: any) => ({
           dataset_url_id: u.dataset_url_id,
@@ -278,32 +335,23 @@ export default function EditAmazonDatasetPage() {
       .filter((a) => a.markedForDeletion)
       .map((a) => a.dataset_url_id);
 
-    const newUrls = parsedNewASINs.map(
-      (asin) => `https://www.amazon.${marketplace}/dp/${asin}`
-    );
-
-    const schema = Array.from(selectedFields).map((key) => ({
-      type: key,
-      description: key,
-    }));
-
     try {
       const res = await callBackend(`/dataset/amazon/edit`, {
-  method: "PATCH",
-  body: JSON.stringify({
-    dataset_id: Number(datasetId),
-    alias: form.name,
-    description: form.description,
-    tag: form.tag,
-    visibility: form.visibility,
-    nightly: form.nightly,
-    fields: Array.from(selectedFields),
-    new_asins: parsedNewASINs,
-    urls_to_delete: urlsToDelete,
-    is_premium: form.is_premium,
-    price: form.is_premium ? form.price : 0,
-  }),
-});
+        method: "PATCH",
+        body: JSON.stringify({
+          dataset_id: Number(datasetId),
+          alias: form.name,
+          description: form.description,
+          tag: form.tag,
+          visibility: form.visibility,
+          nightly: form.nightly,
+          fields: Array.from(selectedFields),
+          new_asins: parsedNewASINs,
+          urls_to_delete: urlsToDelete,
+          is_premium: form.is_premium,
+          price: form.is_premium ? form.price : 0,
+        }),
+      });
       if (!res.ok) {
         const text = await res.text();
         throw new Error(`Server error ${res.status}: ${text}`);
@@ -337,10 +385,13 @@ export default function EditAmazonDatasetPage() {
     );
   }
 
+  // ── Locked states ──────────────────────────────────────────────────────────
+
+  if (datasetStatus === "processing") return <LockedState status="processing" />;
+  if (datasetStatus === "frozen") return <LockedState status="frozen" />;
+
   return (
     <div className="max-w-2xl mx-auto px-5 md:px-8 py-10">
-
-      {/* Header — matches create page style */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-1">
           <FaAmazon size={14} className="text-amber-500" />
@@ -413,13 +464,9 @@ export default function EditAmazonDatasetPage() {
             <div className="flex items-center gap-2 px-3 py-2.5 rounded-md border border-border bg-accent/20">
               <FaAmazon size={12} className="text-amber-500 shrink-0" />
               <span className="text-sm text-foreground font-mono">amazon.{marketplace}</span>
-              <span className="ml-auto text-[10px] text-muted-foreground border border-border bg-accent/30 rounded px-1.5 py-0.5">
-                locked
-              </span>
+              <span className="ml-auto text-[10px] text-muted-foreground border border-border bg-accent/30 rounded px-1.5 py-0.5">locked</span>
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Marketplace cannot be changed after creation.
-            </p>
+            <p className="text-[11px] text-muted-foreground mt-1">Marketplace cannot be changed after creation.</p>
           </div>
 
           {/* Premium toggle — admin only */}
@@ -573,7 +620,6 @@ export default function EditAmazonDatasetPage() {
                 </span>
               </div>
             </div>
-
             {existingASINs.length === 0 ? (
               <div className="flex items-center gap-2 px-3 py-3 rounded-lg border border-border bg-accent/10 text-muted-foreground text-xs">
                 No ASINs attached to this dataset.
@@ -592,10 +638,7 @@ export default function EditAmazonDatasetPage() {
                   >
                     <FaAmazon size={11} className={cn("shrink-0", a.markedForDeletion ? "text-destructive/60" : "text-amber-500/60")} />
                     <span
-                      className={cn(
-                        "flex-1 font-mono truncate",
-                        a.markedForDeletion ? "line-through text-muted-foreground" : "text-foreground"
-                      )}
+                      className={cn("flex-1 font-mono truncate", a.markedForDeletion ? "line-through text-muted-foreground" : "text-foreground")}
                       title={a.url}
                     >
                       {extractASIN(a.url)}
@@ -627,7 +670,6 @@ export default function EditAmazonDatasetPage() {
                 ))}
               </div>
             )}
-
             {markedCount > 0 && (
               <p className="text-[11px] text-destructive/70 mt-1.5 flex items-center gap-1">
                 <AlertCircle size={10} /> {markedCount} ASIN{markedCount > 1 ? "s" : ""} will be removed on save.
@@ -697,9 +739,7 @@ export default function EditAmazonDatasetPage() {
                           : <ChevronDown size={12} className="text-muted-foreground" />
                         }
                         <span className="text-xs font-mono font-medium text-foreground">{group}</span>
-                        <span className="text-[10px] font-mono text-amber-500/70">
-                          {selectedInGroup}/{fields.length}
-                        </span>
+                        <span className="text-[10px] font-mono text-amber-500/70">{selectedInGroup}/{fields.length}</span>
                       </div>
                       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                         <button

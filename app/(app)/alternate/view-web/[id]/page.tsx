@@ -27,12 +27,12 @@ function highlightJSON(json: string): string {
     /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
     (match) => {
       if (/^"/.test(match)) {
-        if (/:$/.test(match)) return `<span style="color:#79b8ff">${match}</span>`;
-        return `<span style="color:#9ecbff">${match}</span>`;
+        if (/:$/.test(match)) return `<span style="color:#e06c75">${match}</span>`;  // keys — red
+        return `<span style="color:#98c379">${match}</span>`;  // string values — green
       }
-      if (/true|false/.test(match)) return `<span style="color:#79c0ff">${match}</span>`;
-      if (/null/.test(match)) return `<span style="color:#6e7681">${match}</span>`;
-      return `<span style="color:#f97316">${match}</span>`;
+      if (/true|false/.test(match)) return `<span style="color:#d19a66">${match}</span>`;  // orange
+      if (/null/.test(match)) return `<span style="color:#6e7681">${match}</span>`;  // grey
+      return `<span style="color:#d19a66">${match}</span>`;  // numbers — orange
     }
   );
 }
@@ -144,21 +144,23 @@ export default function AltViewWebPage() {
 
   useEffect(() => {
     async function load() {
-      setLoading(true);
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/dataset/alternate/result?dataset_id=${datasetId}&version_id=${version}&page=${page}&limit=25`
-        );
-        if (!res.ok) return;
-        const data = await res.json();
-        setEntities(data.entities ?? []);
-        setTotal(data.total ?? 0);
-        setTotalPages(data.total_pages ?? 1);
-        setDataName(data.data_name ?? `Dataset ${datasetId}`);
-      } finally {
-        setLoading(false);
-      }
-    }
+  setLoading(true);
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/dataset/alternate/result?dataset_id=${datasetId}&version_id=${version}&page=${page}&limit=25`
+    );
+    if (!res.ok) return;
+    const data = await res.json();
+    setEntities(data.entities ?? []);
+    setTotal(data.total ?? 0);
+    setTotalPages(data.total_pages ?? 1);
+    setDataName(data.data_name ?? `Dataset ${datasetId}`);
+  } catch (e) {
+    console.error("Failed to load alt view:", e);
+  } finally {
+    setLoading(false);
+  }
+}
     load();
   }, [datasetId, version, page]);
 

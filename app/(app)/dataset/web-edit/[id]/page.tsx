@@ -20,6 +20,7 @@ import {
   DollarSign,
   Link,
   RotateCcw,
+  Snowflake,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -58,6 +59,8 @@ interface EditForm {
   price: number;
 }
 
+type DatasetStatus = "active" | "processing" | "frozen" | null;
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
@@ -78,28 +81,64 @@ function FieldError({ msg }: { msg?: string }) {
   );
 }
 
-function CharCount({
-  current,
-  min,
-  max,
-}: {
-  current: number;
-  min: number;
-  max: number;
-}) {
+function CharCount({ current, min, max }: { current: number; min: number; max: number }) {
   const tooShort = current > 0 && current < min;
   const tooLong = current > max;
-  const color = tooLong
-    ? "text-destructive"
-    : tooShort
-    ? "text-yellow-400"
-    : "text-muted-foreground";
-
+  const color = tooLong ? "text-destructive" : tooShort ? "text-yellow-400" : "text-muted-foreground";
   return (
     <p className={cn("text-[11px] mt-1 text-right tabular-nums", color)}>
       {current}/{max}
       {tooShort && ` — ${min - current} more needed`}
     </p>
+  );
+}
+
+// ── Locked State UI ───────────────────────────────────────────────────────────
+
+function LockedState({ status }: { status: "processing" | "frozen" }) {
+  const isProcessing = status === "processing";
+  return (
+    <div className="max-w-2xl mx-auto px-5 md:px-8 py-10">
+      <div className="mb-8">
+        <p className="text-xs font-mono text-muted-foreground tracking-widest uppercase mb-1">Vexaro</p>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-1">
+          Edit <span className="text-primary">Dataset</span>
+        </h1>
+      </div>
+      <Card className="bg-card border-border">
+        <CardContent className="p-10 flex flex-col items-center justify-center text-center gap-4">
+          <div className={cn(
+            "w-14 h-14 rounded-2xl border flex items-center justify-center",
+            isProcessing
+              ? "bg-primary/10 border-primary/30"
+              : "bg-blue-500/10 border-blue-500/30"
+          )}>
+            {isProcessing
+              ? <Loader2 size={24} className="text-primary animate-spin" />
+              : <Snowflake size={24} className="text-blue-400" />
+            }
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground">
+              {isProcessing ? "Dataset is currently processing" : "Dataset is frozen"}
+            </p>
+            <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
+              {isProcessing
+                ? "Editing is disabled. Please wait until processing completes."
+                : "Unfreeze it from the dashboard before editing."}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.history.back()}
+            className="mt-2 text-xs border-border text-muted-foreground hover:text-foreground"
+          >
+            Go Back
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -116,6 +155,7 @@ export default function EditDatasetPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [datasetName, setDatasetName] = useState<string>("");
+  const [datasetStatus, setDatasetStatus] = useState<DatasetStatus>(null);
 
   const [existingURLs, setExistingURLs] = useState<ExistingURL[]>([]);
 
@@ -136,8 +176,6 @@ export default function EditDatasetPage() {
   const EXTRACT_MIN = 20;
   const EXTRACT_MAX = 500;
 
-  // ── Fetch existing dataset ────────────────────────────────────────────────
-
   useEffect(() => {
     if (!datasetId) return;
     const fetchDataset = async () => {
@@ -151,8 +189,8 @@ export default function EditDatasetPage() {
         const data = await res.json();
 
         setDatasetName(data.name ?? "");
+        setDatasetStatus(data.status ?? null);
 
-        // Map existing URLs with markedForDeletion = false
         const mappedURLs: ExistingURL[] = (data.urls ?? []).map((u: any) => ({
           dataset_url_id: u.dataset_url_id,
           url: u.url,
@@ -191,18 +229,11 @@ export default function EditDatasetPage() {
     fetchDataset();
   }, [datasetId]);
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
   const set = <K extends keyof EditForm>(k: K, v: EditForm[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
 
-  const setPremium = (val: boolean) => {
-    setForm((p) => ({
-      ...p,
-      is_premium: val,
-      visibility: val ? "public" : p.visibility,
-    }));
-  };
+  const setPremium = (val: boolean) =>
+    setForm((p) => ({ ...p, is_premium: val, visibility: val ? "public" : p.visibility }));
 
   const addField = () =>
     setForm((p) => ({
@@ -216,11 +247,7 @@ export default function EditDatasetPage() {
       schema: p.schema.length > 1 ? p.schema.filter((f) => f.id !== id) : p.schema,
     }));
 
-  const updateField = (
-    id: number,
-    key: keyof Omit<SchemaField, "id">,
-    val: string
-  ) =>
+  const updateField = (id: number, key: keyof Omit<SchemaField, "id">, val: string) =>
     setForm((p) => ({
       ...p,
       schema: p.schema.map((f) => (f.id === id ? { ...f, [key]: val } : f)),
@@ -239,12 +266,9 @@ export default function EditDatasetPage() {
   const markedCount = existingURLs.filter((u) => u.markedForDeletion).length;
   const activeCount = existingURLs.length - markedCount;
 
-  // ── Validate ───────────────────────────────────────────────────────────────
-
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.description.trim()) e.description = "Description is required";
-
     const extractLen = form.extractDescription.trim().length;
     if (extractLen === 0) {
       e.extractDescription = "Extract description is required";
@@ -253,16 +277,12 @@ export default function EditDatasetPage() {
     } else if (extractLen > EXTRACT_MAX) {
       e.extractDescription = `Must be at most ${EXTRACT_MAX} characters (${extractLen}/${EXTRACT_MAX})`;
     }
-
     if (form.schema.some((f) => !f.type.trim() || !f.description.trim()))
       e.schema = "All schema fields must have a type and description";
-    if (form.is_premium && form.price < 1)
-      e.price = "Price must be at least $1";
+    if (form.is_premium && form.price < 1) e.price = "Price must be at least $1";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
-
-  // ── Submit ─────────────────────────────────────────────────────────────────
 
   const handleSave = async () => {
     if (!validate()) return;
@@ -277,29 +297,26 @@ export default function EditDatasetPage() {
 
     try {
       const res = await callBackend(`/dataset/edit`, {
-  method: "PATCH",
-  body: JSON.stringify({
-    dataset_id: Number(datasetId),
-    description: form.description,
-    extract_description: form.extractDescription,
-    tag: form.tag,
-    visibility: form.visibility,
-    nightly: form.nightly,
-    schema: form.schema.map(({ type, description, dataType }) => ({
-      type,
-      description,
-      data_type: dataType,
-    })),
-    urls: form.newUrls
-      .split("\n")
-      .map((u) => u.trim())
-      .filter(Boolean),
-    urls_to_delete: urlsToDelete,
-    is_premium: form.is_premium,
-    price: form.is_premium ? form.price : 0,
-    include_links: hasUrlField,
-  }),
-});
+        method: "PATCH",
+        body: JSON.stringify({
+          dataset_id: Number(datasetId),
+          description: form.description,
+          extract_description: form.extractDescription,
+          tag: form.tag,
+          visibility: form.visibility,
+          nightly: form.nightly,
+          schema: form.schema.map(({ type, description, dataType }) => ({
+            type,
+            description,
+            data_type: dataType,
+          })),
+          urls: form.newUrls.split("\n").map((u) => u.trim()).filter(Boolean),
+          urls_to_delete: urlsToDelete,
+          is_premium: form.is_premium,
+          price: form.is_premium ? form.price : 0,
+          include_links: hasUrlField,
+        }),
+      });
       if (!res.ok) {
         const text = await res.text();
         throw new Error(`Server error ${res.status}: ${text}`);
@@ -312,7 +329,7 @@ export default function EditDatasetPage() {
     }
   };
 
-  // ── Loading state ──────────────────────────────────────────────────────────
+  // ── Loading ────────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -337,15 +354,17 @@ export default function EditDatasetPage() {
     );
   }
 
+  // ── Locked states ──────────────────────────────────────────────────────────
+
+  if (datasetStatus === "processing") return <LockedState status="processing" />;
+  if (datasetStatus === "frozen") return <LockedState status="frozen" />;
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className="max-w-2xl mx-auto px-5 md:px-8 py-10">
-      {/* Header */}
       <div className="mb-8">
-        <p className="text-xs font-mono text-muted-foreground tracking-widest uppercase mb-1">
-          Vexaro
-        </p>
+        <p className="text-xs font-mono text-muted-foreground tracking-widest uppercase mb-1">Vexaro</p>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-1">
           Edit <span className="text-primary">{datasetName || "Dataset"}</span>
         </h1>
@@ -354,7 +373,6 @@ export default function EditDatasetPage() {
         </p>
       </div>
 
-      {/* Submit error */}
       {submitError && (
         <div className="mb-4 flex items-center gap-2 px-3 py-2.5 rounded-lg border border-destructive/40 bg-destructive/10 text-destructive text-xs">
           <AlertCircle size={13} /> {submitError}
@@ -396,11 +414,7 @@ export default function EditDatasetPage() {
                 errors.extractDescription && "border-destructive focus-visible:border-destructive"
               )}
             />
-            <CharCount
-              current={form.extractDescription.trim().length}
-              min={EXTRACT_MIN}
-              max={EXTRACT_MAX}
-            />
+            <CharCount current={form.extractDescription.trim().length} min={EXTRACT_MIN} max={EXTRACT_MAX} />
             <FieldError msg={errors.extractDescription} />
           </div>
 
@@ -408,10 +422,7 @@ export default function EditDatasetPage() {
           <div>
             <Label>Dataset Tag</Label>
             <div className="relative">
-              <Tag
-                size={13}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              />
+              <Tag size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={form.tag}
                 onChange={(e) => set("tag", e.target.value)}
@@ -419,27 +430,20 @@ export default function EditDatasetPage() {
                 className="pl-8 bg-accent/30 border-border text-foreground placeholder:text-muted-foreground text-sm focus-visible:ring-primary/40 focus-visible:border-primary/50"
               />
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Optional. Helps with discovery.
-            </p>
+            <p className="text-[11px] text-muted-foreground mt-1">Optional. Helps with discovery.</p>
           </div>
 
           {/* Premium toggle — admin only */}
           {user?.is_admin && (
             <div className={cn(
               "rounded-lg border p-4 space-y-4 transition-colors",
-              form.is_premium
-                ? "border-yellow-500/30 bg-yellow-500/5"
-                : "border-border bg-accent/10"
+              form.is_premium ? "border-yellow-500/30 bg-yellow-500/5" : "border-border bg-accent/10"
             )}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Crown size={14} className={form.is_premium ? "text-yellow-400" : "text-muted-foreground"} />
                   <div>
-                    <p className={cn(
-                      "text-xs font-semibold",
-                      form.is_premium ? "text-yellow-400" : "text-foreground"
-                    )}>
+                    <p className={cn("text-xs font-semibold", form.is_premium ? "text-yellow-400" : "text-foreground")}>
                       Premium Dataset
                     </p>
                     <p className="text-[11px] text-muted-foreground">
@@ -452,9 +456,7 @@ export default function EditDatasetPage() {
                     onClick={() => setPremium(false)}
                     className={cn(
                       "px-3 py-1 text-xs rounded transition-colors",
-                      !form.is_premium
-                        ? "bg-background border border-border text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
+                      !form.is_premium ? "bg-background border border-border text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     Off
@@ -463,24 +465,18 @@ export default function EditDatasetPage() {
                     onClick={() => setPremium(true)}
                     className={cn(
                       "px-3 py-1 text-xs rounded transition-colors",
-                      form.is_premium
-                        ? "bg-background border border-border text-yellow-400 shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
+                      form.is_premium ? "bg-background border border-border text-yellow-400 shadow-sm" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     On
                   </button>
                 </div>
               </div>
-
               {form.is_premium && (
                 <div>
                   <Label required>Price (USD)</Label>
                   <div className="relative max-w-[160px]">
-                    <DollarSign
-                      size={13}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                    />
+                    <DollarSign size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       type="number"
                       min={1}
@@ -519,21 +515,16 @@ export default function EditDatasetPage() {
                     form.is_premium && val === "private" && "opacity-30 cursor-not-allowed"
                   )}
                 >
-                  <div
-                    className={cn(
-                      "w-7 h-7 rounded-md border flex items-center justify-center shrink-0 mt-0.5",
-                      form.visibility === val
-                        ? "bg-primary/15 border-primary/40 text-primary"
-                        : "bg-accent border-border text-muted-foreground"
-                    )}
-                  >
+                  <div className={cn(
+                    "w-7 h-7 rounded-md border flex items-center justify-center shrink-0 mt-0.5",
+                    form.visibility === val
+                      ? "bg-primary/15 border-primary/40 text-primary"
+                      : "bg-accent border-border text-muted-foreground"
+                  )}>
                     <Icon size={13} />
                   </div>
                   <div>
-                    <p className={cn(
-                      "text-xs font-semibold",
-                      form.visibility === val ? "text-primary" : "text-foreground"
-                    )}>
+                    <p className={cn("text-xs font-semibold", form.visibility === val ? "text-primary" : "text-foreground")}>
                       {label}
                       {form.is_premium && val === "private" && (
                         <span className="ml-1 text-[10px] font-normal text-muted-foreground">(locked)</span>
@@ -573,23 +564,16 @@ export default function EditDatasetPage() {
                       : "bg-accent/20 border-border hover:border-primary/30"
                   )}
                 >
-                  <div
-                    className={cn(
-                      "w-7 h-7 rounded-md border flex items-center justify-center shrink-0 mt-0.5",
-                      form.nightly === val
-                        ? "bg-primary/15 border-primary/40 text-primary"
-                        : "bg-accent border-border text-muted-foreground"
-                    )}
-                  >
+                  <div className={cn(
+                    "w-7 h-7 rounded-md border flex items-center justify-center shrink-0 mt-0.5",
+                    form.nightly === val
+                      ? "bg-primary/15 border-primary/40 text-primary"
+                      : "bg-accent border-border text-muted-foreground"
+                  )}>
                     <Moon size={13} />
                   </div>
                   <div>
-                    <p className={cn(
-                      "text-xs font-semibold",
-                      form.nightly === val ? "text-primary" : "text-foreground"
-                    )}>
-                      {label}
-                    </p>
+                    <p className={cn("text-xs font-semibold", form.nightly === val ? "text-primary" : "text-foreground")}>{label}</p>
                     <p className="text-[11px] text-muted-foreground">{desc}</p>
                   </div>
                 </button>
@@ -616,9 +600,7 @@ export default function EditDatasetPage() {
                   className="group flex flex-col gap-2 p-3 rounded-lg bg-accent/20 border border-border hover:border-primary/20 transition-colors md:grid md:grid-cols-[1fr_120px_1fr_auto]"
                 >
                   <div>
-                    <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">
-                      Type
-                    </p>
+                    <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">Type</p>
                     <Input
                       value={field.type}
                       onChange={(e) => updateField(field.id, "type", e.target.value)}
@@ -627,9 +609,7 @@ export default function EditDatasetPage() {
                     />
                   </div>
                   <div>
-                    <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">
-                      Data Type
-                    </p>
+                    <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">Data Type</p>
                     <select
                       value={field.dataType}
                       onChange={(e) => updateField(field.id, "dataType", e.target.value)}
@@ -641,9 +621,7 @@ export default function EditDatasetPage() {
                     </select>
                   </div>
                   <div>
-                    <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">
-                      Description
-                    </p>
+                    <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-1">Description</p>
                     <Input
                       value={field.description}
                       onChange={(e) => updateField(field.id, "description", e.target.value)}
@@ -682,7 +660,6 @@ export default function EditDatasetPage() {
                 </span>
               </div>
             </div>
-
             {existingURLs.length === 0 ? (
               <div className="flex items-center gap-2 px-3 py-3 rounded-lg border border-border bg-accent/10 text-muted-foreground text-xs">
                 <Link size={12} /> No URLs attached to this dataset.
@@ -699,32 +676,19 @@ export default function EditDatasetPage() {
                         : "bg-accent/20 border-border hover:border-primary/20"
                     )}
                   >
-                    <Link
-                      size={11}
-                      className={cn(
-                        "shrink-0",
-                        u.markedForDeletion ? "text-destructive/60" : "text-muted-foreground"
-                      )}
-                    />
+                    <Link size={11} className={cn("shrink-0", u.markedForDeletion ? "text-destructive/60" : "text-muted-foreground")} />
                     <span
-                      className={cn(
-                        "flex-1 font-mono truncate",
-                        u.markedForDeletion
-                          ? "line-through text-muted-foreground"
-                          : "text-foreground"
-                      )}
+                      className={cn("flex-1 font-mono truncate", u.markedForDeletion ? "line-through text-muted-foreground" : "text-foreground")}
                       title={u.url}
                     >
                       {u.url}
                     </span>
-                    <span
-                      className={cn(
-                        "shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded border",
-                        u.source_type === "import"
-                          ? "border-blue-500/20 text-blue-400/70 bg-blue-500/5"
-                          : "border-border text-muted-foreground bg-accent/20"
-                      )}
-                    >
+                    <span className={cn(
+                      "shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded border",
+                      u.source_type === "import"
+                        ? "border-blue-500/20 text-blue-400/70 bg-blue-500/5"
+                        : "border-border text-muted-foreground bg-accent/20"
+                    )}>
                       {u.source_type}
                     </span>
                     <button
@@ -744,7 +708,6 @@ export default function EditDatasetPage() {
                 ))}
               </div>
             )}
-
             {markedCount > 0 && (
               <p className="text-[11px] text-destructive/70 mt-1.5 flex items-center gap-1">
                 <AlertCircle size={10} /> {markedCount} URL{markedCount > 1 ? "s" : ""} will be removed on save.
@@ -755,9 +718,7 @@ export default function EditDatasetPage() {
           {/* Add New URLs */}
           <div>
             <Label>Add New URLs</Label>
-            <p className="text-[11px] text-muted-foreground mb-2">
-              One URL per line. Optional.
-            </p>
+            <p className="text-[11px] text-muted-foreground mb-2">One URL per line. Optional.</p>
             <Textarea
               value={form.newUrls}
               onChange={(e) => set("newUrls", e.target.value)}
@@ -767,7 +728,6 @@ export default function EditDatasetPage() {
             />
           </div>
 
-          {/* Divider */}
           <div className="h-px bg-border" />
 
           {/* Actions */}
@@ -786,13 +746,9 @@ export default function EditDatasetPage() {
               className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-xs tracking-widest uppercase gap-2 disabled:opacity-60"
             >
               {submitting ? (
-                <>
-                  <Loader2 size={13} className="animate-spin" /> Saving...
-                </>
+                <><Loader2 size={13} className="animate-spin" /> Saving...</>
               ) : (
-                <>
-                  <Save size={13} /> Save Changes
-                </>
+                <><Save size={13} /> Save Changes</>
               )}
             </Button>
           </div>

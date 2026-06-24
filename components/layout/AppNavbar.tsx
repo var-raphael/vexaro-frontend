@@ -15,9 +15,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import {
-  LayoutDashboard, User, Database,
-  Bell, Settings, BookOpen, Info, LogOut, Menu, ChevronDown,
-} from "lucide-react";
+   LayoutDashboard, User, Database,
+  Bell, Settings, BookOpen, Info, LogOut, Menu, ChevronDown, CreditCard,
+ } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VexaroWordmark } from "@/components/ui/vexaro-mark";
 import { useAuth } from "@/context/AuthContext";
@@ -28,9 +28,10 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 // ── Nav items ─────────────────────────────────────────────────────────────────
 
 const NAV_ITEMS = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Datasets",  href: "/datasets",  icon: Database },
-];
+   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+   { label: "Datasets",  href: "/datasets",  icon: Database },
+   { label: "Pricing",   href: "/pricing",   icon: CreditCard },
+ ];
 
 const STATIC_SECONDARY_ITEMS = [
   { label: "Settings", href: "/settings", icon: Settings },
