@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import { callBackend } from "@/lib/api";
+import Link from "next/link";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -311,9 +312,12 @@ function PlanSection() {
             <span className="text-xs font-mono text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full">
               Active
             </span>
-            <span className="text-xs font-mono text-muted-foreground bg-accent border border-border px-2 py-0.5 rounded-full">
-              Paid plans coming soon
-            </span>
+            <Link
+              href="/pricing"
+              className="text-xs font-mono text-muted-foreground bg-accent border border-border px-2 py-0.5 rounded-full hover:border-primary hover:text-primary transition-colors"
+            >
+              View plans
+            </Link>
           </div>
           <p className="text-xs text-muted-foreground">$0/mo</p>
         </div>

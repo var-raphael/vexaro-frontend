@@ -74,7 +74,7 @@ const URL_TIPS = [
 ];
 
 const SERP_TIPS = [
-  "Keep the intent narrow. "top remote React jobs" works. "all jobs" does not.",
+  'Keep the intent narrow. "top remote React jobs" works. "all jobs" does not.',
   "Vexaro runs the query via Serper and picks the most relevant public URLs from the results.",
   "SERP-discovered URLs are additive — they stack on top of any URLs you pasted directly.",
   "Re-running discovery on a refresh may return different URLs if the search results have changed.",
@@ -514,7 +514,7 @@ GET ${SITE_URL}/api/42/my-dataset/v3/alt/`}
               </div>
               <p className="text-xs mt-3" style={{ color: "var(--muted-2)", fontFamily: "var(--font-body)" }}>
                 See the full{" "}
-                <Link href="/docs/pricings" style={{ color: "var(--accent-color)" }} className="underline underline-offset-2">
+                <Link href="/docs/pricing" style={{ color: "var(--accent-color)" }} className="underline underline-offset-2">
                   pricing page
                 </Link>{" "}
                 for a complete feature comparison.
