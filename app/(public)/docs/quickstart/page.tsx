@@ -437,7 +437,7 @@ export default function QuickstartPage() {
                 className="text-sm leading-relaxed mb-6"
                 style={{ color: "var(--fg)", fontFamily: "var(--font-body)", opacity: 0.7 }}
               >
-                Private datasets require a Bearer token. Find your private key in the dataset settings inside your dashboard.
+                Private datasets require a Bearer token. Find and copy your private key in your dataset inside your dashboard.
               </p>
               <pre
                 className="font-mono text-xs leading-relaxed p-4 overflow-x-auto rounded-sm"
