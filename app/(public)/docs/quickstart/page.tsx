@@ -13,11 +13,20 @@ export const metadata: Metadata = {
     url: `${SITE_URL}/docs/quickstart`,
     siteName: SITE_NAME,
     type: "website",
+        images: [
+      {
+        url: `${SITE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: `${SITE_NAME} API Reference`,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: `Quickstart -- ${SITE_NAME} Docs`,
     description: "Get your first Quorel dataset live in under 5 minutes.",
+    images: [`${SITE_URL}/og-image.png`],
   },
   alternates: {
     canonical: `${SITE_URL}/docs/quickstart`,

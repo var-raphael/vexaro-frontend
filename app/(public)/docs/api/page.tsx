@@ -13,11 +13,20 @@ export const metadata: Metadata = {
     url: `${SITE_URL}/docs/api`,
     siteName: SITE_NAME,
     type: "website",
+    images: [
+      {
+        url: `${SITE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: `${SITE_NAME} API Reference`,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: `API Reference -- ${SITE_NAME} Docs`,
     description: "Complete API reference for Quorel. Every endpoint, parameter, response header, format, and error code.",
+   images: [`${SITE_URL}/og-image.png`],
   },
   alternates: {
     canonical: `${SITE_URL}/docs/api`,

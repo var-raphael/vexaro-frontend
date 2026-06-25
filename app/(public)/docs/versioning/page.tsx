@@ -13,11 +13,20 @@ export const metadata: Metadata = {
     url: `${SITE_URL}/docs/versioning`,
     siteName: SITE_NAME,
     type: "website",
+        images: [
+      {
+        url: `${SITE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: `${SITE_NAME} API Reference`,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: `Versioning -- ${SITE_NAME} Docs`,
     description: "How Quorel versions every refresh, how to roll back, how alt versions work, and how to diff any two versions.",
+    images: [`${SITE_URL}/og-image.png`],
   },
   alternates: {
     canonical: `${SITE_URL}/docs/versioning`,
