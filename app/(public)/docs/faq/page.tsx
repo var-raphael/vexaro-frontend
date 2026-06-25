@@ -6,10 +6,10 @@ import { SITE_URL, SITE_NAME } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: `FAQ -- ${SITE_NAME} Docs`,
-  description: "Answers to the most common questions about Vexaro datasets, the API, pricing, and how things work under the hood.",
+  description: "Answers to the most common questions about Quorel datasets, the API, pricing, and how things work under the hood.",
   openGraph: {
     title: `FAQ -- ${SITE_NAME} Docs`,
-    description: "Answers to the most common questions about Vexaro.",
+    description: "Answers to the most common questions about Quorel.",
     url: `${SITE_URL}/docs/faq`,
     siteName: SITE_NAME,
     type: "website",
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: `FAQ -- ${SITE_NAME} Docs`,
-    description: "Answers to the most common questions about Vexaro.",
+    description: "Answers to the most common questions about Quorel.",
   },
   alternates: {
     canonical: `${SITE_URL}/docs/faq`,
@@ -29,20 +29,20 @@ const FAQS = [
     group: "Getting started",
     items: [
       {
-        q: "Do I need an account to use Vexaro?",
+        q: "Do I need an account to use Quorel?",
         a: "No. Every public dataset is accessible via GET request with no account, no API key, and no signup. You only need an account to create your own datasets, access private datasets, or use MCP.",
       },
       {
         q: "How long does it take for my first dataset to be ready?",
-        a: "Usually a few minutes. Once you submit, Vexaro crawls your URLs, runs AI extraction against your schema, and creates v1. You will receive a notification when it is done. Larger datasets with many URLs take longer.",
+        a: "Usually a few minutes. Once you submit, Quorel crawls your URLs, runs AI extraction against your schema, and creates v1. You will receive a notification when it is done. Larger datasets with many URLs take longer.",
       },
       {
-        q: "Can I try Vexaro without a credit card?",
+        q: "Can I try Quorel without a credit card?",
         a: "Yes. The Free plan requires no credit card and gives you one dataset with up to 20 URLs and 10 SERP-discovered URLs. You can hit the API, download data, use MCP, and roll back versions — all for free.",
       },
       {
-        q: "What kinds of websites can Vexaro crawl?",
-        a: "Any publicly accessible web page. Vexaro cannot crawl pages that require login, are behind paywalls, or actively block automated access. Reddit is supported natively via the Reddit JSON API. Amazon products are supported via a dedicated Amazon integration.",
+        q: "What kinds of websites can Quorel crawl?",
+        a: "Any publicly accessible web page. Quorel cannot crawl pages that require login, are behind paywalls, or actively block automated access. Reddit is supported natively via the Reddit JSON API. Amazon products are supported via a dedicated Amazon integration.",
       },
     ],
   },
@@ -63,7 +63,7 @@ const FAQS = [
       },
       {
         q: "What is the extract intent and how is it different from the SERP intent?",
-        a: "The SERP intent is used to discover source URLs via web search — it answers the question 'where should Vexaro look?'. The extract intent tells the AI what to extract from those pages — it answers 'what do you want from each page?'. Both are plain English. The extract intent must be at least 20 characters.",
+        a: "The SERP intent is used to discover source URLs via web search — it answers the question 'where should Quorel look?'. The extract intent tells the AI what to extract from those pages — it answers 'what do you want from each page?'. Both are plain English. The extract intent must be at least 20 characters.",
       },
       {
         q: "Why can't I edit my dataset right now?",
@@ -125,7 +125,7 @@ const FAQS = [
       },
       {
         q: "How does the diff work for modified entities?",
-        a: "Vexaro matches entities across versions using their source URL and a weighted field-similarity score. Fields with more unique values across the dataset carry more weight. Two entities need a similarity score of at least 0.3 to be considered a match — below that threshold, they are treated as independent additions and subtractions rather than a modification.",
+        a: "Quorel matches entities across versions using their source URL and a weighted field-similarity score. Fields with more unique values across the dataset carry more weight. Two entities need a similarity score of at least 0.3 to be considered a match — below that threshold, they are treated as independent additions and subtractions rather than a modification.",
       },
     ],
   },

@@ -7,10 +7,10 @@ import { SITE_URL, SITE_NAME } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: `Blog -- ${SITE_NAME}`,
-  description: "Thoughts on web data, versioning, AI pipelines, and building Vexaro in public.",
+  description: "Thoughts on web data, versioning, AI pipelines, and building Quorel in public.",
   openGraph: {
     title: `Blog -- ${SITE_NAME}`,
-    description: "Thoughts on web data, versioning, AI pipelines, and building Vexaro in public.",
+    description: "Thoughts on web data, versioning, AI pipelines, and building Quorel in public.",
     url: `${SITE_URL}/blog`,
     siteName: SITE_NAME,
     type: "website",
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: `Blog -- ${SITE_NAME}`,
-    description: "Thoughts on web data, versioning, AI pipelines, and building Vexaro in public.",
+    description: "Thoughts on web data, versioning, AI pipelines, and building Quorel in public.",
   },
   alternates: {
     canonical: `${SITE_URL}/blog`,
@@ -59,7 +59,7 @@ export default function BlogPage() {
               className="text-sm leading-relaxed"
               style={{ color: "var(--fg)", fontFamily: "var(--font-body)", opacity: 0.7 }}
             >
-              Web data, versioning, AI pipelines, and building Vexaro in public. Written by Raphael.
+              Web data, versioning, AI pipelines, and building Quorel in public. Written by Raphael.
             </p>
           </div>
 

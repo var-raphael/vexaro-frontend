@@ -6,10 +6,10 @@ import { SITE_URL, SITE_NAME } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: `MCP -- ${SITE_NAME} Docs`,
-  description: "Connect your Vexaro datasets to Claude and any MCP-compatible agent. Query, filter, and push alt versions conversationally.",
+  description: "Connect your Quorel datasets to Claude and any MCP-compatible agent. Query, filter, and push alt versions conversationally.",
   openGraph: {
     title: `MCP -- ${SITE_NAME} Docs`,
-    description: "Connect your Vexaro datasets to Claude and any MCP-compatible agent.",
+    description: "Connect your Quorel datasets to Claude and any MCP-compatible agent.",
     url: `${SITE_URL}/docs/mcp`,
     siteName: SITE_NAME,
     type: "website",
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: `MCP -- ${SITE_NAME} Docs`,
-    description: "Connect your Vexaro datasets to Claude and any MCP-compatible agent.",
+    description: "Connect your Quorel datasets to Claude and any MCP-compatible agent.",
   },
   alternates: {
     canonical: `${SITE_URL}/docs/mcp`,
@@ -180,7 +180,7 @@ export default function MCPPage() {
               Your datasets, callable by Claude.
             </h1>
             <p className="text-sm leading-relaxed" style={{ color: "var(--fg)", fontFamily: "var(--font-body)", opacity: 0.7 }}>
-              Every Vexaro dataset ships with a native MCP server. Claude — or any MCP-compatible agent — can list, query, filter, and clean your data without you writing a script. Included on every plan.
+              Every Quorel dataset ships with a native MCP server. Claude — or any MCP-compatible agent — can list, query, filter, and clean your data without you writing a script. Included on every plan.
             </p>
           </div>
 
@@ -195,7 +195,7 @@ export default function MCPPage() {
                 className="text-sm leading-relaxed mb-6"
                 style={{ color: "var(--fg)", fontFamily: "var(--font-body)", opacity: 0.7 }}
               >
-                Vexaro uses the MCP SSE transport. Your agent connects to a token-scoped SSE endpoint and receives tool definitions it can call in any order.
+                Quorel uses the MCP SSE transport. Your agent connects to a token-scoped SSE endpoint and receives tool definitions it can call in any order.
               </p>
               <pre
                 className="font-mono text-xs leading-relaxed p-4 overflow-x-auto rounded-sm"
@@ -284,7 +284,7 @@ Authorization: Bearer abc123def456...`}
 }`}
               </pre>
               <p className="text-xs mt-3" style={{ color: "var(--muted-2)", fontFamily: "var(--font-body)" }}>
-                Restart Claude Desktop after saving. The five Vexaro tools will appear in Claude's tool list automatically.
+                Restart Claude Desktop after saving. The five Quorel tools will appear in Claude's tool list automatically.
               </p>
             </section>
 

@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vexaro - The source of truth for the live web",
+  title: "Quorel - The source of truth for the live web",
   description:
-    "Define what data you want from any public website, once. Vexaro structures it, versions every change, and serves it as a clean, always-fresh API — for AI agents, dashboards, and data pipelines.",
+    "Define what data you want from any public website, once. Quorel structures it, versions every change, and serves it as a clean, always-fresh API — for AI agents, dashboards, and data pipelines.",
 };
 
 export default function RootLayout({

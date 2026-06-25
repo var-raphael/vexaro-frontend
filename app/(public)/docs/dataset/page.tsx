@@ -6,10 +6,10 @@ import { SITE_URL, SITE_NAME } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: `Dataset -- ${SITE_NAME} Docs`,
-  description: "Everything about creating, configuring, cloning, and extending Vexaro datasets.",
+  description: "Everything about creating, configuring, cloning, and extending Quorel datasets.",
   openGraph: {
     title: `Dataset -- ${SITE_NAME} Docs`,
-    description: "Everything about creating, configuring, cloning, and extending Vexaro datasets.",
+    description: "Everything about creating, configuring, cloning, and extending Quorel datasets.",
     url: `${SITE_URL}/docs/dataset`,
     siteName: SITE_NAME,
     type: "website",
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: `Dataset -- ${SITE_NAME} Docs`,
-    description: "Everything about creating, configuring, cloning, and extending Vexaro datasets.",
+    description: "Everything about creating, configuring, cloning, and extending Quorel datasets.",
   },
   alternates: {
     canonical: `${SITE_URL}/docs/dataset`,
@@ -50,7 +50,7 @@ const SCHEMA_TIPS = [
   },
   {
     label: "Leave _source alone",
-    desc: "Vexaro adds a _source field automatically with the origin URL of each entity. You do not need to declare it in your schema.",
+    desc: "Quorel adds a _source field automatically with the origin URL of each entity. You do not need to declare it in your schema.",
   },
 ];
 
@@ -61,7 +61,7 @@ const URL_TIPS = [
   },
   {
     label: "Avoid login-walled pages",
-    desc: "Vexaro crawls public pages only. If a URL requires authentication, the crawl will fail silently for that URL.",
+    desc: "Quorel crawls public pages only. If a URL requires authentication, the crawl will fail silently for that URL.",
   },
   {
     label: "Pagination",
@@ -75,7 +75,7 @@ const URL_TIPS = [
 
 const SERP_TIPS = [
   'Keep the intent narrow. "top remote React jobs" works. "all jobs" does not.',
-  "Vexaro runs the query via Serper and picks the most relevant public URLs from the results.",
+  "Quorel runs the query via Serper and picks the most relevant public URLs from the results.",
   "SERP-discovered URLs are additive — they stack on top of any URLs you pasted directly.",
   "Re-running discovery on a refresh may return different URLs if the search results have changed.",
 ];
@@ -91,7 +91,7 @@ const REFRESH_OPTIONS = [
   },
   {
     label: "Webhook on completion",
-    desc: "Pro and above. Register an endpoint and Vexaro will POST to it the moment a refresh finishes. See the Webhooks doc for the payload shape.",
+    desc: "Pro and above. Register an endpoint and Quorel will POST to it the moment a refresh finishes. See the Webhooks doc for the payload shape.",
   },
 ];
 
@@ -122,7 +122,7 @@ const FROZEN_NOTES = [
   "A frozen dataset will never refresh again.",
   "Its API endpoint stays live and returns the last version indefinitely.",
   "Frozen datasets cannot be unfrozen. Clone it first if you want an active copy.",
-  "Datasets that violate the Terms of Service may be frozen by Vexaro.",
+  "Datasets that violate the Terms of Service may be frozen by Quorel.",
 ];
 
 const NEXT_STEPS = [
@@ -279,7 +279,7 @@ author (string) — the username of the submitter`}
                 className="text-sm leading-relaxed mb-6"
                 style={{ color: "var(--fg)", fontFamily: "var(--font-body)", opacity: 0.7 }}
               >
-                Paste one URL per line. Vexaro crawls each page and extracts entities against your schema. All URLs must be publicly accessible.
+                Paste one URL per line. Quorel crawls each page and extracts entities against your schema. All URLs must be publicly accessible.
               </p>
               <div style={{ border: "1px solid var(--line-color)" }}>
                 {URL_TIPS.map(({ label, desc }, i) => (
@@ -308,7 +308,7 @@ author (string) — the username of the submitter`}
                 className="text-sm leading-relaxed mb-6"
                 style={{ color: "var(--fg)", fontFamily: "var(--font-body)", opacity: 0.7 }}
               >
-                Don't know the exact URLs? Describe what you want in plain English and Vexaro will discover the sources for you via web search. SERP-discovered URLs are additive — they stack on top of any URLs you pasted directly.
+                Don't know the exact URLs? Describe what you want in plain English and Quorel will discover the sources for you via web search. SERP-discovered URLs are additive — they stack on top of any URLs you pasted directly.
               </p>
 
               <p className="font-mono text-xs mb-2" style={{ color: "var(--muted-2)" }}>Example intents</p>

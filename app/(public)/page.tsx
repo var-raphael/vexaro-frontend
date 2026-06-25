@@ -205,7 +205,7 @@ for the live web.
             className="text-base md:text-lg leading-relaxed mb-4 max-w-xl"
             style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}
           >
-            Define what data you want from any public website, once. Vexaro fetches it, structures it against your schema, versions every change, and serves it as a clean API. No pipelines. No maintenance. No dirty surprises.
+            Define what data you want from any public website, once. Quorel fetches it, structures it against your schema, versions every change, and serves it as a clean API. No pipelines. No maintenance. No dirty surprises.
           </p>
 
           <p
@@ -260,7 +260,7 @@ function ProblemSolution() {
   ];
 
   const SOLUTIONS = [
-    { win: "Schema-first extraction", detail: "Tell Vexaro what fields you need in plain English. We deliver them clean, typed, and consistent on every single refresh." },
+    { win: "Schema-first extraction", detail: "Tell Quorel what fields you need in plain English. We deliver them clean, typed, and consistent on every single refresh." },
     { win: "Refreshed every night, automatically", detail: "No cron jobs. No servers. No missed runs. Your data is always current when you wake up." },
     { win: "Every change versioned forever", detail: "Nothing is ever overwritten. Roll back to any prior state instantly. Full diff between any two versions." },
     { win: "Plug straight into your pipeline", detail: "Clean structured JSON, CSV, JSONL, XML, Excel, Parquet, TSV any format, convenient params, ready immediately. No preprocessing. No cleaning scripts." },
@@ -309,7 +309,7 @@ function ProblemSolution() {
             <Reveal delay={80}>
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-4 h-px" style={{ background: "var(--accent-color)" }} />
-                <span className="font-mono text-xs tracking-widest uppercase" style={{ color: "var(--accent-color)" }}>The Vexaro way</span>
+                <span className="font-mono text-xs tracking-widest uppercase" style={{ color: "var(--accent-color)" }}>The Quorel way</span>
               </div>
               <h2
                 className="font-black tracking-tight leading-tight mb-8"
@@ -347,7 +347,7 @@ const STEPS = [
     n: "01",
     icon: <Globe size={16} />,
     title: "Paste URLs or describe your intent",
-    desc: "Paste/Import any public URLs directly, or describe what data you need in plain English and let Vexaro discover the sources for you.",
+    desc: "Paste/Import any public URLs directly, or describe what data you need in plain English and let Quorel discover the sources for you.",
   },
   {
     n: "02",
@@ -359,7 +359,7 @@ const STEPS = [
     n: "03",
     icon: <GitBranch size={16} />,
     title: "Your source of truth goes live, versioned from day one",
-    desc: "Vexaro refreshes nightly. Trigger extra refreshes via your ping URL or webhook. Every change is a permanent snapshot — nothing is ever lost.",
+    desc: "Quorel refreshes nightly. Trigger extra refreshes via your ping URL or webhook. Every change is a permanent snapshot — nothing is ever lost.",
   },
   {
     n: "04",
@@ -659,11 +659,11 @@ function Playground() {
 // ── Features ──────────────────────────────────────────────────────────────────
 
 const FEATURES = [
-  { icon: <Database size={15} />, title: "Intent-Driven Extraction", desc: "Describe your need in plain English, define your schema, and Vexaro extracts exactly that from any public web source. Typed, clean, and consistent on every refresh." },
+  { icon: <Database size={15} />, title: "Intent-Driven Extraction", desc: "Describe your need in plain English, define your schema, and Quorel extracts exactly that from any public web source. Typed, clean, and consistent on every refresh." },
   { icon: <FileJson size={15} />, title: "Any Format, Any Params", desc: "Consume your dataset as JSON, CSV, JSONL, XML, Excel, TSV, Parquet. Filter, sort, deduplicate, denull, paginate — all via query params. Public endpoints need no account." },
   { icon: <RefreshCw size={15} />, title: "Nightly Automatic Refresh", desc: "Your sources are re-processed every night. Your dataset is always current by morning. No cron jobs. No missed runs. No maintenance." },
   { icon: <Zap size={15} />, title: "On-Demand Ping URL", desc: "Every dataset gets a dedicated ping URL. Wire it into any external scheduler or CI pipeline for additional refreshes whenever you need fresher data." },
-  { icon: <Webhook size={15} />, title: "Webhook Notifications", desc: "Register a webhook endpoint and Vexaro will notify you the moment your dataset finishes refreshing. Build reactive pipelines without polling." },
+  { icon: <Webhook size={15} />, title: "Webhook Notifications", desc: "Register a webhook endpoint and Quorel will notify you the moment your dataset finishes refreshing. Build reactive pipelines without polling." },
   { icon: <GitBranch size={15} />, title: "Immutable Version History", desc: "Every refresh is a permanent snapshot. Nothing is ever overwritten. Your full history is always queryable, diffable, and downloadable." },
   { icon: <Diff size={15} />, title: "Visual Diff Viewer", desc: "See exactly what changed between any two versions. Added rows, removed entries, modified field values — all clearly visualized side by side." },
   { icon: <Undo2 size={15} />, title: "One-Click Rollback", desc: "A bad refresh brought in dirty data? Roll back to any prior version instantly. Freeze it to lock it permanently. Your source of truth stays stable." },
@@ -766,7 +766,7 @@ function MCPSection() {
                 className="text-sm leading-relaxed mb-8"
                 style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}
               >
-                Every Vexaro dataset ships with a native MCP server, included on every plan. Claude — or any MCP-compatible agent — can query it, filter it, and clean it without you writing a script.
+                Every Quorel dataset ships with a native MCP server, included on every plan. Claude — or any MCP-compatible agent — can query it, filter it, and clean it without you writing a script.
               </p>
             </Reveal>
             <div className="space-y-6">
@@ -1122,7 +1122,7 @@ const SOCIAL_LINKS = [
   {
     icon: <FaLinkedin size={15} />,
     label: "LinkedIn",
-    handle: "Vexaro",
+    handle: "Quorel",
     href: "https://linkedin.com/company/vexaro",
     detail: "The more professional version of the same updates.",
   },
@@ -1174,7 +1174,7 @@ function Journey() {
                 className="text-sm leading-relaxed mb-8"
                 style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}
               >
-                Vexaro is a solo-founder startup, early and public. That's not a disclaimer, it's how you get a direct line to the person actually building it — no layers in between.
+                Quorel is a solo-founder startup, early and public. That's not a disclaimer, it's how you get a direct line to the person actually building it — no layers in between.
               </p>
             </Reveal>
             <div className="space-y-6">

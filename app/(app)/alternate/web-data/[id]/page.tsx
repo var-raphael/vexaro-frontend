@@ -163,7 +163,7 @@ function UploadModal({
             <div>
               <h3 className="text-sm font-semibold text-foreground">Upload alternate JSON</h3>
               <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                Upload a Vexaro result file. The <span className="font-mono text-foreground">entities</span> array
+                Upload a Quorel result file. The <span className="font-mono text-foreground">entities</span> array
                 will fully replace the current alternate.
               </p>
             </div>

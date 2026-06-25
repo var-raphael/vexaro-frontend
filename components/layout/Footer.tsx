@@ -12,7 +12,7 @@ export function Footer() {
         </div>
 
         <div className="flex flex-col sm:items-end gap-1">
-          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Vexaro. All rights reserved.</p>
+          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Quorel. All rights reserved.</p>
         </div>
       </div>
     </footer>

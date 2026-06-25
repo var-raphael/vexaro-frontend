@@ -130,7 +130,7 @@ export default function AuthPage() {
               <span style={{ color: "var(--accent-color)" }}>structured.</span>
             </h1>
             <p className="text-sm leading-relaxed max-w-xs" style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}>
-              Define what data you want. Vexaro fetches it, structures it, versions it, and serves it as a live API. No pipelines. No maintenance.
+              Define what data you want. Quorel fetches it, structures it, versions it, and serves it as a live API. No pipelines. No maintenance.
             </p>
           </div>
 
@@ -166,7 +166,7 @@ export default function AuthPage() {
             </h2>
 
             <p className="text-sm mb-10" style={{ color: "var(--muted)", fontFamily: "var(--font-body)" }}>
-              Sign in to your Vexaro account to manage your Datasets.
+              Sign in to your Quorel account to manage your Datasets.
             </p>
 
             <button
@@ -190,7 +190,7 @@ export default function AuthPage() {
             </div>
 
             <p className="text-xs text-center mt-10 leading-relaxed" style={{ color: "var(--muted-2)", fontFamily: "var(--font-body)" }}>
-              By continuing, you agree to Vexaro's{" "}
+              By continuing, you agree to Quorel's{" "}
               <a href="#" style={{ color: "var(--muted)", textDecoration: "underline", textDecorationColor: "var(--muted-2)" }}>
                 Terms of Service
               </a>{" "}

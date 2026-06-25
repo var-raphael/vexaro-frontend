@@ -3,6 +3,7 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ProfileClient from "./ProfileClient";
+import { SITE_URL, SITE_NAME } from "@/lib/config";
 
 interface Props {
   params: Promise<{ username: string }>;
@@ -25,31 +26,31 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const data = await getProfile(username);
 
   if (!data) {
-    return { title: "Profile not found — Vexaro" };
+    return { title: `Profile not found — ${SITE_NAME}` };
   }
 
   const { user } = data;
 
   return {
-    title: `${user.username} — Vexaro`,
+    title: `${user.username} — ${SITE_NAME}`,
     description:
       user.bio ||
-      `${user.username}'s public datasets on Vexaro. Browse, clone, and hit live data APIs.`,
+      `${user.username}'s public datasets on ${SITE_NAME}. Browse, clone, and hit live data APIs.`,
     openGraph: {
-      title: `${user.username} on Vexaro`,
+      title: `${user.username} on ${SITE_NAME}`,
       description:
-        user.bio || `Browse ${user.username}'s public datasets on Vexaro.`,
-      url: `https://vexaro.com/profile/${user.username}`,
+        user.bio || `Browse ${user.username}'s public datasets on ${SITE_NAME}.`,
+      url: `${SITE_URL}/profile/${user.username}`,
       type: "profile",
     },
     twitter: {
       card: "summary",
-      title: `${user.username} on Vexaro`,
+      title: `${user.username} on ${SITE_NAME}`,
       description:
-        user.bio || `Browse ${user.username}'s public datasets on Vexaro.`,
+        user.bio || `Browse ${user.username}'s public datasets on ${SITE_NAME}.`,
     },
     alternates: {
-      canonical: `https://vexaro.com/profile/${user.username}`,
+      canonical: `${SITE_URL}/profile/${user.username}`,
     },
   };
 }

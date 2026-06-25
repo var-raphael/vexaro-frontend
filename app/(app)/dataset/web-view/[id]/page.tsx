@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { DatasetViewClient } from "./dataset-view-client";
+import { SITE_URL, SITE_NAME } from "@/lib/config";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -25,14 +26,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!dataset) {
     return {
-      title: "Dataset Not Found | Vexaro",
+      title: `Dataset Not Found | ${SITE_NAME}`,
       description: "This dataset could not be found.",
     };
   }
 
-  const title = `${dataset.name} — Public Dataset | Vexaro`;
+  const title = `${dataset.name} — Public Dataset | ${SITE_NAME}`;
   const description = `${dataset.description ?? ""} · ${dataset.entity_count ?? 0} entities · v${dataset.active_version ?? 1} · ${dataset.dataset_type ?? "web"} dataset`.trim();
-  const url = `https://vexaro.vercel.app/dataset/web-view/${id}`;
+  const url = `${SITE_URL}/dataset/web-view/${id}`;
 
   return {
     title,
@@ -42,21 +43,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       dataset.tag ?? "",
       dataset.dataset_type ?? "web",
       "public dataset",
-      "vexaro",
+      SITE_NAME.toLowerCase(),
       "data api",
     ].filter(Boolean),
     openGraph: {
       title,
       description,
       url,
-      siteName: "Vexaro",
+      siteName: SITE_NAME,
       type: "website",
       images: [
         {
-          url: "https://vexaro.vercel.app/og-image.png",
+          url: `${SITE_URL}/og-image.png`,
           width: 1200,
           height: 630,
-          alt: `${dataset.name} — Vexaro Dataset`,
+          alt: `${dataset.name} — ${SITE_NAME} Dataset`,
         },
       ],
     },
@@ -64,7 +65,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       card: "summary_large_image",
       title,
       description,
-      images: ["https://vexaro.vercel.app/og-image.png"],
+      images: [`${SITE_URL}/og-image.png`],
     },
     alternates: {
       canonical: url,

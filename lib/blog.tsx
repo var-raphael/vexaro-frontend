@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import WhyIBuiltVexaro from "@/content/blog/why-i-built-vexaro";
+import WhyIBuiltQuorel from "@/content/blog/why-i-built-quorel";
 import VersioningWebData from "@/content/blog/versioning-web-data";
 
 export type Post = {
@@ -15,12 +15,12 @@ export type Post = {
 export const posts: Post[] = [
   {
     slug: "why-i-built-vexaro",
-    title: "Why I built Vexaro",
+    title: "Why I built Quorel",
     date: "2026-06-25",
     description: "Data pipelines are painful, expensive, and force you to stitch together tools that were never meant to work together. Here's why that bothered me enough to build something.",
     tag: "product",
-    cover: "/blog/why-i-built-vexaro.jpg",
-    body: <WhyIBuiltVexaro />,
+    cover: "/blog/why-i-built-quorel.jpg",
+    body: <WhyIBuiltQuorel />,
   },
   {
     slug: "versioning-web-data",

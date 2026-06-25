@@ -6,10 +6,10 @@ import { SITE_URL, SITE_NAME } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: `Versioning -- ${SITE_NAME} Docs`,
-  description: "How Vexaro versions every refresh, how to roll back, how alt versions work, and how to diff any two versions.",
+  description: "How Quorel versions every refresh, how to roll back, how alt versions work, and how to diff any two versions.",
   openGraph: {
     title: `Versioning -- ${SITE_NAME} Docs`,
-    description: "How Vexaro versions every refresh, how to roll back, how alt versions work, and how to diff any two versions.",
+    description: "How Quorel versions every refresh, how to roll back, how alt versions work, and how to diff any two versions.",
     url: `${SITE_URL}/docs/versioning`,
     siteName: SITE_NAME,
     type: "website",
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: `Versioning -- ${SITE_NAME} Docs`,
-    description: "How Vexaro versions every refresh, how to roll back, how alt versions work, and how to diff any two versions.",
+    description: "How Quorel versions every refresh, how to roll back, how alt versions work, and how to diff any two versions.",
   },
   alternates: {
     canonical: `${SITE_URL}/docs/versioning`,
@@ -352,7 +352,7 @@ Authorization: <session>
                 className="text-sm leading-relaxed mb-6"
                 style={{ color: "var(--fg)", fontFamily: "var(--font-body)", opacity: 0.7 }}
               >
-                Any two versions of the same dataset can be diffed. Vexaro matches entities across versions using their source URL and a weighted field-similarity score, then classifies each change as added, subtracted, or modified.
+                Any two versions of the same dataset can be diffed. Quorel matches entities across versions using their source URL and a weighted field-similarity score, then classifies each change as added, subtracted, or modified.
               </p>
 
               <p className="font-mono text-xs mb-2" style={{ color: "var(--muted-2)" }}>Request</p>

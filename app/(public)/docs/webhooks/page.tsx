@@ -101,12 +101,12 @@ const SETUP_STEPS = [
   {
     n: "03",
     title: "Verify the signature (recommended)",
-    body: "If you provided a secret, Vexaro signs every payload with it. Verify the signature on your server before processing the event.",
+    body: "If you provided a secret, Quorel signs every payload with it. Verify the signature on your server before processing the event.",
   },
   {
     n: "04",
     title: "Respond with 2xx",
-    body: "Return any 2xx status code quickly. Vexaro records the status in last_status. Non-2xx responses are noted but the webhook is not automatically disabled.",
+    body: "Return any 2xx status code quickly. Quorel records the status in last_status. Non-2xx responses are noted but the webhook is not automatically disabled.",
   },
 ];
 
@@ -157,7 +157,7 @@ export default function WebhooksPage() {
               React the moment a refresh lands.
             </h1>
             <p className="text-sm leading-relaxed" style={{ color: "var(--fg)", fontFamily: "var(--font-body)", opacity: 0.7 }}>
-              Register an endpoint and Vexaro will POST to it the moment a dataset refresh completes. No polling. Available on Pro and Scale.
+              Register an endpoint and Quorel will POST to it the moment a dataset refresh completes. No polling. Available on Pro and Scale.
             </p>
           </div>
 
@@ -170,7 +170,7 @@ export default function WebhooksPage() {
                 className="text-sm leading-relaxed mb-6"
                 style={{ color: "var(--fg)", fontFamily: "var(--font-body)", opacity: 0.7 }}
               >
-                One webhook per dataset. When a refresh completes and a new version is created, Vexaro sends a single POST to your registered URL with a JSON payload describing the event. The result is recorded in <code className="font-mono text-xs px-1 py-0.5" style={{ background: "#1a1a1a", color: "var(--accent-color)", border: "1px solid var(--line-color)" }}>last_fired_at</code> and <code className="font-mono text-xs px-1 py-0.5" style={{ background: "#1a1a1a", color: "var(--accent-color)", border: "1px solid var(--line-color)" }}>last_status</code>.
+                One webhook per dataset. When a refresh completes and a new version is created, Quorel sends a single POST to your registered URL with a JSON payload describing the event. The result is recorded in <code className="font-mono text-xs px-1 py-0.5" style={{ background: "#1a1a1a", color: "var(--accent-color)", border: "1px solid var(--line-color)" }}>last_fired_at</code> and <code className="font-mono text-xs px-1 py-0.5" style={{ background: "#1a1a1a", color: "var(--accent-color)", border: "1px solid var(--line-color)" }}>last_status</code>.
               </p>
 
               <div className="space-y-8">
@@ -290,7 +290,7 @@ export default function WebhooksPage() {
                 className="text-sm leading-relaxed mb-6"
                 style={{ color: "var(--fg)", fontFamily: "var(--font-body)", opacity: 0.7 }}
               >
-                Vexaro sends a single POST to your endpoint with <code className="font-mono text-xs px-1 py-0.5" style={{ background: "#1a1a1a", color: "var(--accent-color)", border: "1px solid var(--line-color)" }}>Content-Type: application/json</code>. The body looks like this:
+                Quorel sends a single POST to your endpoint with <code className="font-mono text-xs px-1 py-0.5" style={{ background: "#1a1a1a", color: "var(--accent-color)", border: "1px solid var(--line-color)" }}>Content-Type: application/json</code>. The body looks like this:
               </p>
 
               <pre
@@ -332,7 +332,7 @@ export default function WebhooksPage() {
                 className="text-sm leading-relaxed mb-6"
                 style={{ color: "var(--fg)", fontFamily: "var(--font-body)", opacity: 0.7 }}
               >
-                If you registered a secret, Vexaro includes an <code className="font-mono text-xs px-1 py-0.5" style={{ background: "#1a1a1a", color: "var(--accent-color)", border: "1px solid var(--line-color)" }}>X-Vexaro-Signature</code> header on every request. It is a hex-encoded HMAC-SHA256 of the raw request body, keyed with your secret. Verify it before processing the payload.
+                If you registered a secret, Quorel includes an <code className="font-mono text-xs px-1 py-0.5" style={{ background: "#1a1a1a", color: "var(--accent-color)", border: "1px solid var(--line-color)" }}>X-Quorel-Signature</code> header on every request. It is a hex-encoded HMAC-SHA256 of the raw request body, keyed with your secret. Verify it before processing the payload.
               </p>
 
               <p className="font-mono text-xs mb-2" style={{ color: "var(--muted-2)" }}>Node.js</p>
@@ -434,7 +434,7 @@ def verify_signature(raw_body: bytes, signature: str, secret: str) -> bool:
               <div style={{ border: "1px solid var(--line-color)" }}>
                 {[
                   { label: "One webhook per dataset", desc: "Registering a second webhook for the same dataset replaces the first. There is no queue of multiple endpoints." },
-                  { label: "No automatic retries", desc: "Vexaro fires the webhook once and records the result. If your endpoint is down, you will not receive the event retroactively. Use the API to fetch the new version manually if needed." },
+                  { label: "No automatic retries", desc: "Quorel fires the webhook once and records the result. If your endpoint is down, you will not receive the event retroactively. Use the API to fetch the new version manually if needed." },
                   { label: "Non-2xx responses are recorded, not fatal", desc: "If your endpoint returns 4xx or 5xx, the webhook is not disabled. The status is recorded in last_status and the next refresh will fire again." },
                   { label: "Secret is write-only", desc: "The secret you provide is never returned by the view endpoint. has_secret tells you whether one is configured." },
                   { label: "Registering replaces, not stacks", desc: "Calling POST /webhook/register when a webhook already exists updates the URL and secret in place. is_active is reset to true and last_fired_at is cleared." },

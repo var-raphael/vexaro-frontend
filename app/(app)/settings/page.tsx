@@ -98,7 +98,7 @@ function BioSection() {
           onChange={(e) => setBio(e.target.value)}
           maxLength={500}
           rows={4}
-          placeholder="Tell others what you build with Vexaro..."
+          placeholder="Tell others what you build with Quorel..."
           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
         />
         <p className="text-[11px] text-muted-foreground/50 text-right">{bio.length}/500</p>
@@ -197,7 +197,7 @@ function MCPSection() {
       ) : !hasToken ? (
         <div className="space-y-4">
           <p className="text-xs text-muted-foreground leading-relaxed max-w-md">
-            Generate an MCP token to connect your Vexaro datasets to any MCP-compatible AI client. Your token authenticates all dataset access over the MCP protocol.
+            Generate an MCP token to connect your Quorel datasets to any MCP-compatible AI client. Your token authenticates all dataset access over the MCP protocol.
           </p>
           <Button
             size="sm"

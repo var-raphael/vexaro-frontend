@@ -6,10 +6,10 @@ import { SITE_URL, SITE_NAME } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: `About -- ${SITE_NAME}`,
-  description: "Vexaro is built by Raphael, a software developer who got tired of stitching together painful, expensive data pipelines.",
+  description: "Quorel is built by Raphael, a software developer who got tired of stitching together painful, expensive data pipelines.",
   openGraph: {
     title: `About -- ${SITE_NAME}`,
-    description: "Vexaro is built by Raphael, a software developer who got tired of stitching together painful, expensive data pipelines.",
+    description: "Quorel is built by Raphael, a software developer who got tired of stitching together painful, expensive data pipelines.",
     url: `${SITE_URL}/about`,
     siteName: SITE_NAME,
     type: "website",
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: `About -- ${SITE_NAME}`,
-    description: "Vexaro is built by Raphael, a software developer who got tired of stitching together painful, expensive data pipelines.",
+    description: "Quorel is built by Raphael, a software developer who got tired of stitching together painful, expensive data pipelines.",
   },
   alternates: {
     canonical: `${SITE_URL}/about`,
@@ -54,7 +54,7 @@ const SOCIALS = [
 const WHAT_IT_IS = [
   {
     label: "A schema-first extraction engine",
-    desc: "You describe what you want in plain English. Vexaro maps web content to your structure precisely — no selectors, no XPath, no brittle scraping rules that break every other week.",
+    desc: "You describe what you want in plain English. Quorel maps web content to your structure precisely — no selectors, no XPath, no brittle scraping rules that break every other week.",
   },
   {
     label: "A versioned data store",
@@ -108,7 +108,7 @@ export default function AboutPage() {
               Built by one person,<br />out of genuine frustration.
             </h1>
             <p className="text-sm leading-relaxed" style={{ color: "var(--fg)", fontFamily: "var(--font-body)", opacity: 0.7 }}>
-              Vexaro is a solo project. One codebase, one founder, no committee.
+              Quorel is a solo project. One codebase, one founder, no committee.
             </p>
           </div>
 
@@ -127,7 +127,7 @@ export default function AboutPage() {
                   The pipeline is painful to build, expensive to run, and time-consuming to maintain — and that's before you've written a single line of business logic. Most of that time is spent on infrastructure nobody wanted to build in the first place.
                 </p>
                 <p>
-                  Vexaro is the thing I wanted to exist: describe what data you need, point it at sources, and get a clean versioned API back. The infrastructure disappears.
+                  Quorel is the thing I wanted to exist: describe what data you need, point it at sources, and get a clean versioned API back. The infrastructure disappears.
                 </p>
               </div>
             </section>
@@ -137,7 +137,7 @@ export default function AboutPage() {
             {/* What it is */}
             <section>
               <h2 className="font-bold text-base mb-6" style={{ fontFamily: "var(--font-body)" }}>
-                What Vexaro actually is
+                What Quorel actually is
               </h2>
               <div style={{ border: "1px solid var(--line-color)" }}>
                 {WHAT_IT_IS.map(({ label, desc }, i) => (
@@ -162,7 +162,7 @@ export default function AboutPage() {
               </h2>
               <div className="space-y-4 text-sm leading-relaxed" style={{ color: "var(--fg)", fontFamily: "var(--font-body)", opacity: 0.7 }}>
                 <p>
-                  I'm Raphael, a software developer. I built Vexaro because I kept running into the same problem on different projects and got tired of assembling the same fragile stack every time.
+                  I'm Raphael, a software developer. I built Quorel because I kept running into the same problem on different projects and got tired of assembling the same fragile stack every time.
                 </p>
                 <p>
                   This is a public beta. The rough edges are real, the fixes are fast, and every message you send reaches me directly — not a support queue, not a tier-1 agent. Me.
@@ -230,7 +230,7 @@ export default function AboutPage() {
               </h2>
               <div className="space-y-4 text-sm leading-relaxed" style={{ color: "var(--fg)", fontFamily: "var(--font-body)", opacity: 0.7 }}>
                 <p>
-                  Vexaro is in public beta. The core pipeline is stable — datasets, versioning, the API, MCP, webhooks, and the marketplace are all live and working. What's coming is more scale: higher URL limits, custom refresh schedules, priority crawling, and team access.
+                  Quorel is in public beta. The core pipeline is stable — datasets, versioning, the API, MCP, webhooks, and the marketplace are all live and working. What's coming is more scale: higher URL limits, custom refresh schedules, priority crawling, and team access.
                 </p>
                 <p>
                   The Scale plan is on the roadmap. If you need something that isn't there yet,{" "}

@@ -20,7 +20,7 @@ export function VexaroMark({
 }) {
   return (
     <Image
-      src="/vexaro-mark.svg"
+      src="/quorel-mark.svg"
       alt="Vexaro"
       width={size}
       height={size}

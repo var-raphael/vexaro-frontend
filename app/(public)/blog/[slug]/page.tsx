@@ -166,7 +166,7 @@ export default async function BlogPostPage({
                 className="font-mono text-xs"
                 style={{ color: "var(--muted-2)" }}
               >
-                Builder of Vexaro
+                Builder of Quorel
               </p>
             </div>
             <div className="flex items-center gap-4">

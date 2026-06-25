@@ -6,10 +6,10 @@ import { SITE_URL, SITE_NAME } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: `Quickstart -- ${SITE_NAME} Docs`,
-  description: "Get your first Vexaro dataset live in under 5 minutes. No pipelines, no infrastructure, no credit card required.",
+  description: "Get your first Quorel dataset live in under 5 minutes. No pipelines, no infrastructure, no credit card required.",
   openGraph: {
     title: `Quickstart -- ${SITE_NAME} Docs`,
-    description: "Get your first Vexaro dataset live in under 5 minutes.",
+    description: "Get your first Quorel dataset live in under 5 minutes.",
     url: `${SITE_URL}/docs/quickstart`,
     siteName: SITE_NAME,
     type: "website",
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: `Quickstart -- ${SITE_NAME} Docs`,
-    description: "Get your first Vexaro dataset live in under 5 minutes.",
+    description: "Get your first Quorel dataset live in under 5 minutes.",
   },
   alternates: {
     canonical: `${SITE_URL}/docs/quickstart`,
@@ -64,17 +64,17 @@ const STEPS = [
   {
     n: "02",
     title: "Paste URLs or describe your intent",
-    body: "Import URLs directly, or type a plain-English description of what you want and Vexaro will discover the sources for you using web search.",
+    body: "Import URLs directly, or type a plain-English description of what you want and Quorel will discover the sources for you using web search.",
   },
   {
     n: "03",
     title: "Define your schema",
-    body: "Tell Vexaro which fields you want and what they mean in plain English. For example: title (string) -- the title of the article, score (number) -- the upvote count.",
+    body: "Tell Quorel which fields you want and what they mean in plain English. For example: title (string) -- the title of the article, score (number) -- the upvote count.",
   },
   {
     n: "04",
     title: "Wait for processing",
-    body: "Vexaro crawls your URLs, runs AI extraction against your schema, and versions the result. You will get a notification when it is ready. Usually takes a few minutes.",
+    body: "Quorel crawls your URLs, runs AI extraction against your schema, and versions the result. You will get a notification when it is ready. Usually takes a few minutes.",
   },
   {
     n: "05",
@@ -162,7 +162,7 @@ export default function QuickstartPage() {
                 className="text-sm leading-relaxed mb-6"
                 style={{ color: "var(--fg)", fontFamily: "var(--font-body)", opacity: 0.7 }}
               >
-                Every public dataset on Vexaro is accessible to anyone. No API key, no signup. Just a GET request.
+                Every public dataset on Quorel is accessible to anyone. No API key, no signup. Just a GET request.
               </p>
 
               <p className="font-mono text-xs mb-2" style={{ color: "var(--muted-2)" }}>Request</p>

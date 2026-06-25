@@ -6,10 +6,10 @@ import { SITE_URL, SITE_NAME } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: `API Reference -- ${SITE_NAME} Docs`,
-  description: "Complete API reference for Vexaro. Every endpoint, parameter, response header, format, and error code.",
+  description: "Complete API reference for Quorel. Every endpoint, parameter, response header, format, and error code.",
   openGraph: {
     title: `API Reference -- ${SITE_NAME} Docs`,
-    description: "Complete API reference for Vexaro. Every endpoint, parameter, response header, format, and error code.",
+    description: "Complete API reference for Quorel. Every endpoint, parameter, response header, format, and error code.",
     url: `${SITE_URL}/docs/api`,
     siteName: SITE_NAME,
     type: "website",
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: `API Reference -- ${SITE_NAME} Docs`,
-    description: "Complete API reference for Vexaro. Every endpoint, parameter, response header, format, and error code.",
+    description: "Complete API reference for Quorel. Every endpoint, parameter, response header, format, and error code.",
   },
   alternates: {
     canonical: `${SITE_URL}/docs/api`,

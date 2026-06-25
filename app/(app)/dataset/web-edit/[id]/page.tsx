@@ -100,7 +100,7 @@ function LockedState({ status }: { status: "processing" | "frozen" }) {
   return (
     <div className="max-w-2xl mx-auto px-5 md:px-8 py-10">
       <div className="mb-8">
-        <p className="text-xs font-mono text-muted-foreground tracking-widest uppercase mb-1">Vexaro</p>
+        <p className="text-xs font-mono text-muted-foreground tracking-widest uppercase mb-1">Quorel</p>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-1">
           Edit <span className="text-primary">Dataset</span>
         </h1>
@@ -364,7 +364,7 @@ export default function EditDatasetPage() {
   return (
     <div className="max-w-2xl mx-auto px-5 md:px-8 py-10">
       <div className="mb-8">
-        <p className="text-xs font-mono text-muted-foreground tracking-widest uppercase mb-1">Vexaro</p>
+        <p className="text-xs font-mono text-muted-foreground tracking-widest uppercase mb-1">Quorel</p>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-1">
           Edit <span className="text-primary">{datasetName || "Dataset"}</span>
         </h1>
