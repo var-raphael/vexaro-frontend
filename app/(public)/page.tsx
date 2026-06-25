@@ -1108,22 +1108,22 @@ const SOCIAL_LINKS = [
   {
     icon: <FaXTwitter size={15} />,
     label: "X / Twitter",
-    handle: "@vexaro_hq",
-    href: "https://x.com/vexaro_hq",
+    handle: "@PhantomDev001",
+    href: "https://x.com/PhantomDev001",
     detail: "Build logs, ships, and the occasional rant about anti-bot systems.",
   },
   {
     icon: <FaGithub size={15} />,
     label: "GitHub",
-    handle: "@vexaro",
-    href: "https://github.com/vexaro",
+    handle: "var-raphael",
+    href: "https://github.com/var-raphael",
     detail: "Open issues, request features, or just watch the commits roll in.",
   },
   {
     icon: <FaLinkedin size={15} />,
     label: "LinkedIn",
-    handle: "Quorel",
-    href: "https://linkedin.com/company/vexaro",
+    handle: "Samuel Raphael",
+    href: "https://www.linkedin.com/in/samuel-raphael-7679313a2",
     detail: "The more professional version of the same updates.",
   },
 ];
