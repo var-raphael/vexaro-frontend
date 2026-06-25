@@ -56,7 +56,7 @@ export function VexaroWordmark({
         className={`font-bold tracking-tight text-foreground ${textSize}`}
         style={{ letterSpacing: "-0.045em" }}
       >
-        <span className="text-primary">V</span>exaro
+        <span className="text-primary">Q</span>uorel
       </span>
     </div>
   );
