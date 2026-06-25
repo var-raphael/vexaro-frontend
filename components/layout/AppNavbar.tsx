@@ -140,10 +140,40 @@ export function AppNavbar() {
     router.push("/");
   }
 
-  // Hide navbar on /datasets for signed-out users only
+  // Stripped-down navbar: signed-out users on /datasets
   const onDatasetsPage = pathname === "/datasets" || pathname.startsWith("/datasets/");
-  if (onDatasetsPage && !user) {
-    return null;
+  const showMinimalNav = onDatasetsPage && !user;
+
+  if (showMinimalNav) {
+    return (
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 md:px-8 h-16 bg-background/80 backdrop-blur-md border-b border-border">
+        <Link href="/" className="shrink-0">
+          <VexaroWordmark markSize={28} textSize="text-lg" />
+        </Link>
+
+        <div className="flex items-center gap-4">
+          <Link
+            href="/docs"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Docs
+          </Link>
+          <Link
+            href="/about"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            About
+          </Link>
+          <Button
+            size="sm"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
+            asChild
+          >
+            <Link href="/auth">Start building</Link>
+          </Button>
+        </div>
+      </nav>
+    );
   }
 
   return (
