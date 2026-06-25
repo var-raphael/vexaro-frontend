@@ -21,7 +21,6 @@ const DOC_LINKS = [
 ];
 
 const MORE_LINKS = [
-  { label: "Pricing", href: "/docs/pricing", icon: DollarSign },
   { label: "Blog", href: "/blog", icon: Newspaper },
   { label: "About", href: "/about", icon: Users },
 ];
