@@ -19,7 +19,7 @@ import {
   Bell, Settings, BookOpen, Info, LogOut, Menu, ChevronDown, CreditCard,
  } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { VexaroWordmark } from "@/components/ui/vexaro-mark";
+import { VexaroWordmark } from "@/components/ui/quorel-mark";
 import { useAuth } from "@/context/AuthContext";
 import { callBackend } from "@/lib/api";
 
@@ -105,6 +105,7 @@ function ActivePageIndicator({ profileHref }: { profileHref: string }) {
 export function AppNavbar() {
   const { user, signOut } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -137,6 +138,12 @@ export function AppNavbar() {
   function handleSignOut() {
     signOut();
     router.push("/");
+  }
+
+  // Hide navbar on /datasets for signed-out users only
+  const onDatasetsPage = pathname === "/datasets" || pathname.startsWith("/datasets/");
+  if (onDatasetsPage && !user) {
+    return null;
   }
 
   return (
