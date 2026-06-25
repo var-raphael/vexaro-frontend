@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { SITE_URL, SITE_NAME } from "@/lib/config";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,9 +15,52 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Quorel - The source of truth for the live web",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `${SITE_NAME} - The source of truth for the live web`,
+    template: `%s | ${SITE_NAME}`,
+  },
   description:
     "Define what data you want from any public website, once. Quorel structures it, versions every change, and serves it as a clean, always-fresh API — for AI agents, dashboards, and data pipelines.",
+  keywords: [
+    "web scraping api",
+    "structured data api",
+    "versioned data",
+    "data pipeline",
+    "web data extraction",
+    SITE_NAME.toLowerCase(),
+  ],
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    title: `${SITE_NAME} - The source of truth for the live web`,
+    description:
+      "Define what data you want from any public website, once. Quorel structures it, versions every change, and serves it as a clean, always-fresh API.",
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    type: "website",
+    images: [
+      {
+        url: `${SITE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: `${SITE_NAME} — The source of truth for the live web`,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} - The source of truth for the live web`,
+    description:
+      "Define what data you want from any public website, once. Quorel structures it, versions every change, and serves it as a clean, always-fresh API.",
+    images: [`${SITE_URL}/og-image.png`],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
