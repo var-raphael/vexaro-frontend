@@ -19,7 +19,7 @@ import {
   Bell, Settings, BookOpen, Info, LogOut, Menu, ChevronDown, CreditCard,
  } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { VexaroWordmark } from "@/components/ui/quorel-mark";
+import { VexaroWordmark } from "@/components/ui/vexaro-mark";
 import { useAuth } from "@/context/AuthContext";
 import { callBackend } from "@/lib/api";
 
