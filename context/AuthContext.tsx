@@ -24,7 +24,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 async function syncUser(session: Session): Promise<User> {
-  const res = await fetch("http://localhost:8080/auth/sync", {
+  const res = await fetch("https://quorel.onrender.com/auth/sync", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
