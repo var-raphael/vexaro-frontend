@@ -719,68 +719,73 @@ export default function CreateDatasetPage() {
   };
 
   const handleRun = async (full: PipelinePayload) => {
-    setPhase("running");
-    setProgressLines([]);
-    setErrorMsg(null);
+  setPhase("running");
+  setProgressLines([]);
+  setErrorMsg(null);
 
-    try {
-      const res = await callBackend(`/queue`, {
-  method: "POST",
-  body: JSON.stringify({ ...full }),
-});
+  try {
+    const res = await callBackend(`/queue`, {
+      method: "POST",
+      body: JSON.stringify({ ...full }),
+    });
 
-      if (!res.ok || !res.body) {
-        const text = await res.text();
-        throw new Error(`Server error ${res.status}: ${text}`);
+    if (!res.ok || !res.body) {
+      const text = await res.text();
+      try {
+        const parsed = JSON.parse(text);
+        throw new Error(parsed.error || text);
+      } catch {
+        throw new Error(text);
       }
+    }
 
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
-        const parts = buffer.split("\n\n");
-        buffer = parts.pop() ?? "";
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() ?? "";
 
-        for (const part of parts) {
-          const lines = part.split("\n");
-          let event = "message";
-          let data = "";
+      for (const part of parts) {
+        const lines = part.split("\n");
+        let event = "message";
+        let data = "";
 
-          for (const line of lines) {
-            if (line.startsWith("event: ")) event = line.slice(7).trim();
-            if (line.startsWith("data: ")) data = line.slice(6).trim();
-          }
+        for (const line of lines) {
+          if (line.startsWith("event: ")) event = line.slice(7).trim();
+          if (line.startsWith("data: ")) data = line.slice(6).trim();
+        }
 
-          if (!data) continue;
+        if (!data) continue;
 
-          if (event === "progress") {
-            const parsed = JSON.parse(data);
-            addLine(parsed.detail);
-          } else if (event === "done") {
-            setProgressLines((prev) =>
-              prev.map((l, i) => (i === prev.length - 1 ? { ...l, done: true } : l))
-            );
-            setPhase("done");
-            setTimeout(() => {
-              router.push("/dashboard");
-            }, 1200);
-          } else if (event === "error") {
-            const parsed = JSON.parse(data);
-            setErrorMsg(parsed.message);
-            setPhase("error");
-          }
+        if (event === "progress") {
+          const parsed = JSON.parse(data);
+          addLine(parsed.detail);
+        } else if (event === "done") {
+          setProgressLines((prev) =>
+            prev.map((l, i) => (i === prev.length - 1 ? { ...l, done: true } : l))
+          );
+          setPhase("done");
+          setTimeout(() => {
+            router.push("/dashboard");
+          }, 1200);
+        } else if (event === "error") {
+          const parsed = JSON.parse(data);
+          setErrorMsg(parsed.message);
+          setPhase("error");
         }
       }
-    } catch (err: any) {
-      setErrorMsg("Something went wrong. Please try again.");
-      setPhase("error");
     }
-  };
+  } catch (err: any) {
+    setErrorMsg(err.message || "Something went wrong. Please try again.");
+    setPhase("error");
+  }
+};
 
   return (
     <div className="max-w-2xl mx-auto px-5 md:px-8 py-10">
