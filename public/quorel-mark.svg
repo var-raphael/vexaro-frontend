@@ -1,0 +1,98 @@
+<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;">
+  <defs>
+    <filter id="vx-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="1.8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <style>
+      .vx-raw-dash {
+        stroke-dasharray: 8 4;
+        stroke-dashoffset: 0;
+        opacity: 0.5;
+        animation: vx-transmit 1.8s linear infinite;
+      }
+      @keyframes vx-transmit {
+        to { stroke-dashoffset: -36; }
+      }
+
+      .vx-apex-dot {
+        animation: vx-heartbeat 2.4s ease-in-out infinite;
+      }
+      @keyframes vx-heartbeat {
+        0%,100% { r: 2.5; opacity: 1; }
+        40%     { r: 3.8; opacity: 0.7; }
+        55%     { r: 2.2; opacity: 1; }
+        70%     { r: 3.2; opacity: 0.8; }
+        85%     { r: 2.5; opacity: 1; }
+      }
+
+      .vx-apex-halo {
+        animation: vx-halo 2.4s ease-in-out infinite;
+      }
+      @keyframes vx-halo {
+        0%,100% { r: 6;  opacity: 0.08; }
+        40%     { r: 10; opacity: 0.18; }
+        55%     { r: 5;  opacity: 0.06; }
+        70%     { r: 8;  opacity: 0.14; }
+        85%     { r: 6;  opacity: 0.08; }
+      }
+
+      .vx-apex-ring {
+        animation: vx-ring 2.4s ease-in-out infinite;
+        fill: none;
+      }
+      @keyframes vx-ring {
+        0%,55%,100% { r: 0;  opacity: 0;    stroke-width: 1;   }
+        40%         { r: 14; opacity: 0.12; stroke-width: 0.5; }
+        54%         { r: 18; opacity: 0;    stroke-width: 0.2; }
+      }
+    </style>
+  </defs>
+
+  <!--
+    Q body: left half is the "raw" jagged arc, right half is the clean arc.
+    Both halves are drawn as a single ring split at top (12 o'clock) and
+    bottom (6 o'clock), so the transformation reads left-to-right same as
+    the original V mark (raw -> clean).
+  -->
+
+  <!-- Clean right arc (12 o'clock down to 6 o'clock, going clockwise through 3 o'clock) -->
+  <path
+    d="M22 4 A18 18 0 0 1 22 40"
+    stroke="#22d3ee" stroke-width="4" stroke-linecap="round" fill="none"
+  />
+
+  <!-- Raw left arc — base (12 o'clock down to 6 o'clock, going counter-clockwise through 9 o'clock), jittered -->
+  <path
+    class="vx-raw-base"
+    opacity="0.35"
+    d="M22 4
+       C13 4.5, 7 8, 5 14
+       C3.5 18, 6 21, 4 24
+       C2.5 27.5, 7 30, 6 33
+       C7.5 36.5, 14 39.5, 22 40"
+    stroke="#22d3ee" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"
+  />
+  <!-- Raw left arc — travelling dash overlay -->
+  <path
+    class="vx-raw-dash"
+    d="M22 4
+       C13 4.5, 7 8, 5 14
+       C3.5 18, 6 21, 4 24
+       C2.5 27.5, 7 30, 6 33
+       C7.5 36.5, 14 39.5, 22 40"
+    stroke="#67e8f9" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"
+  />
+
+  <!-- Q tail, clean stroke, diagonal cut bottom-right of the ring -->
+  <path
+    d="M27 31 L38 42"
+    stroke="#22d3ee" stroke-width="4.5" stroke-linecap="round" fill="none"
+  />
+
+  <!-- Apex pulse sits where the tail meets the ring -->
+  <circle class="vx-apex-ring" cx="27" cy="31" r="0" stroke="#22d3ee"/>
+  <circle class="vx-apex-halo" cx="27" cy="31" r="6" fill="#22d3ee" filter="url(#vx-glow)"/>
+  <circle class="vx-apex-dot" cx="27" cy="31" r="2.5" fill="#22d3ee"/>
+</svg>
