@@ -731,12 +731,14 @@ export default function CreateDatasetPage() {
 
     if (!res.ok || !res.body) {
       const text = await res.text();
+      let message = text;
       try {
         const parsed = JSON.parse(text);
-        throw new Error(parsed.error || text);
+        if (parsed.error) message = parsed.error;
       } catch {
-        throw new Error(text);
+        // not JSON, use raw text
       }
+      throw new Error(message);
     }
 
     const reader = res.body.getReader();
